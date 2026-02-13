@@ -1,4 +1,4 @@
-name: Manual Build And Release
+name: Manual Nuitka Build And Release
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       release_name:
-        description: "Release name (optional)"
+        description: "Release title (optional)"
         required: false
         default: ""
         type: string
@@ -26,7 +26,10 @@ jobs:
         include:
           - runner: windows-latest
             arch: x64
-            label: x64-x86_64
+            label: x64
+          - runner: windows-latest
+            arch: x64
+            label: x86_64
           - runner: windows-11-arm
             arch: arm64
             label: arm64
@@ -41,68 +44,66 @@ jobs:
           python-version: "3.11"
           architecture: ${{ matrix.arch }}
 
-      - name: Install dependencies
+      - name: Install Nuitka toolchain
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          pip install pyqt5 pyinstaller pillow
+          pip install nuitka ordered-set zstandard pyside6 pillow
 
       - name: Convert icon.png to icon.ico
         shell: pwsh
         run: |
-          if (-not (Test-Path "icon.png")) {
-            throw "icon.png not found in repository root"
-          }
+          if (-not (Test-Path "icon.png")) { throw "icon.png not found in repository root." }
           python - <<'PY'
           from PIL import Image
           img = Image.open("icon.png").convert("RGBA")
           img.save("icon.ico", format="ICO", sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])
           PY
 
-      - name: Build exe bundle
+      - name: Build executable with Nuitka
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
-          pyinstaller --noconfirm --clean --windowed --onedir --name HomeworkIsland `
-            --icon "icon.ico" `
-            --add-data "qml;qml" `
-            --add-data "view;view" `
-            --add-data "about.html;." `
-            --add-data "icon.png;." `
-            main.py
+          python -m nuitka main.py `
+            --standalone `
+            --assume-yes-for-downloads `
+            --enable-plugin=pyside6 `
+            --windows-console-mode=disable `
+            --windows-icon-from-ico=icon.ico `
+            --include-data-dir=qml=qml `
+            --include-data-dir=view=view `
+            --include-data-file=about.html=about.html `
+            --include-data-file=icon.png=icon.png `
+            --output-dir=build
 
-      - name: Copy full project snapshot into package
+      - name: Bundle full project snapshot
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path "dist\HomeworkIsland\project" | Out-Null
-          robocopy . "dist\HomeworkIsland\project" /E /XD .git .venv build dist __pycache__ /XF *.pyc
+          New-Item -ItemType Directory -Force -Path "build\main.dist\project" | Out-Null
+          robocopy . "build\main.dist\project" /E /XD .git .github .venv build dist __pycache__ /XF *.pyc
           if ($LASTEXITCODE -gt 7) { exit $LASTEXITCODE }
 
-      - name: Create release zip files
+      - name: Pack artifact
         shell: pwsh
         run: |
-          Compress-Archive -Path "dist\HomeworkIsland\*" -DestinationPath "HomeworkIsland-windows-${{ matrix.label }}.zip" -Force
-          if ("${{ matrix.label }}" -eq "x64-x86_64") {
-            Copy-Item "HomeworkIsland-windows-x64-x86_64.zip" "HomeworkIsland-windows-x64.zip"
-            Copy-Item "HomeworkIsland-windows-x64-x86_64.zip" "HomeworkIsland-windows-x86_64.zip"
-          }
+          $zipName = "HomeworkIsland-windows-${{ matrix.label }}.zip"
+          Compress-Archive -Path "build\main.dist\*" -DestinationPath "$zipName" -Force
 
-      - name: Upload artifacts
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.label }}
-          path: |
-            HomeworkIsland-windows-${{ matrix.label }}.zip
-            HomeworkIsland-windows-x64.zip
-            HomeworkIsland-windows-x86_64.zip
+          path: HomeworkIsland-windows-${{ matrix.label }}.zip
 
   build-deb:
-    name: Debian (${{ matrix.deb_arch }})
+    name: Debian (${{ matrix.label }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          - runner: ubuntu-latest
+            deb_arch: amd64
+            label: amd64
           - runner: ubuntu-latest
             deb_arch: amd64
             label: x86_64
@@ -114,7 +115,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build deb
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Nuitka toolchain
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python -m pip install --upgrade pip
+          pip install nuitka ordered-set zstandard pyside6
+          sudo apt-get update
+          sudo apt-get install -y patchelf
+
+      - name: Build Linux binary with Nuitka
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python -m nuitka main.py \
+            --standalone \
+            --assume-yes-for-downloads \
+            --enable-plugin=pyside6 \
+            --include-data-dir=qml=qml \
+            --include-data-dir=view=view \
+            --include-data-file=about.html=about.html \
+            --include-data-file=icon.png=icon.png \
+            --output-dir=build
+
+      - name: Build deb package
         shell: bash
         run: |
           set -euxo pipefail
@@ -124,15 +153,17 @@ jobs:
           PKG_ROOT="$PWD/pkgroot"
           INSTALL_DIR="$PKG_ROOT/opt/$APP_NAME"
 
-          mkdir -p "$INSTALL_DIR"
-          rsync -a ./ "$INSTALL_DIR/" --exclude .git --exclude .venv --exclude build --exclude dist --exclude __pycache__
+          mkdir -p "$INSTALL_DIR/runtime"
+          cp -r build/main.dist/* "$INSTALL_DIR/runtime/"
+
+          mkdir -p "$INSTALL_DIR/project"
+          rsync -a ./ "$INSTALL_DIR/project/" --exclude .git --exclude .github --exclude .venv --exclude build --exclude dist --exclude __pycache__
 
           mkdir -p "$PKG_ROOT/usr/bin"
           cat > "$PKG_ROOT/usr/bin/$APP_NAME" <<'EOF'
           #!/usr/bin/env bash
           set -e
-          cd /opt/homework-island
-          exec python3 /opt/homework-island/main.py
+          exec /opt/homework-island/runtime/main.bin
           EOF
           chmod +x "$PKG_ROOT/usr/bin/$APP_NAME"
 
@@ -149,7 +180,7 @@ jobs:
           EOF
 
           mkdir -p "$PKG_ROOT/usr/share/icons/hicolor/256x256/apps"
-          cp "$INSTALL_DIR/icon.png" "$PKG_ROOT/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
+          cp icon.png "$PKG_ROOT/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
 
           mkdir -p "$PKG_ROOT/DEBIAN"
           cat > "$PKG_ROOT/DEBIAN/control" <<EOF
@@ -159,22 +190,18 @@ jobs:
           Priority: optional
           Architecture: ${{ matrix.deb_arch }}
           Maintainer: HomeworkIsland Builder <builder@example.com>
-          Depends: python3, python3-pyqt5
-          Description: Homework board app (PyQt + Qt Quick)
-           Includes full project files and runs main.py from /opt/homework-island.
+          Description: Homework board app built with Nuitka (Qt/QML)
+           Includes compiled runtime and full project snapshot.
           EOF
 
-          dpkg-deb --build "$PKG_ROOT" "${APP_NAME}_${APP_VER}_${{ matrix.deb_arch }}.deb"
-          if [ "${{ matrix.deb_arch }}" = "amd64" ]; then
-            cp "${APP_NAME}_${APP_VER}_amd64.deb" "${APP_NAME}_${APP_VER}_x86_64.deb"
-          fi
+          DEB_NAME="${APP_NAME}_${APP_VER}_${{ matrix.label }}.deb"
+          dpkg-deb --build "$PKG_ROOT" "$DEB_NAME"
 
-      - name: Upload artifacts
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: deb-${{ matrix.deb_arch }}
-          path: |
-            *.deb
+          name: deb-${{ matrix.label }}
+          path: "*.deb"
 
   release:
     name: Publish Release
@@ -184,24 +211,23 @@ jobs:
       - build-deb
 
     steps:
-      - name: Download all artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: release-assets
 
-      - name: Flatten assets directory
+      - name: Flatten assets
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p release-flat
-          find release-assets -type f -maxdepth 3 -exec cp {} release-flat/ \;
+          find release-assets -type f -exec cp {} release-flat/ \;
           ls -lah release-flat
 
-      - name: Create or update release
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag }}
           name: ${{ github.event.inputs.release_name != '' && github.event.inputs.release_name || github.event.inputs.tag }}
           generate_release_notes: true
-          files: |
-            release-flat/*
+          files: release-flat/*
