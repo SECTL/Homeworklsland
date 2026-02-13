@@ -1,0 +1,6 @@
+.DS_Store
+.codex/
+.venv/
+__pycache__/
+*.pyc
+saves/

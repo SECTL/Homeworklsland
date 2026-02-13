@@ -1,0 +1,155 @@
+name: Build Windows And Deb Packages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: Windows (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            arch: x64
+            label: x64-x86_64
+          - runner: windows-11-arm
+            arch: arm64
+            label: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: ${{ matrix.arch }}
+
+      - name: Install build deps
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyqt5 pyinstaller pillow
+
+      - name: Convert icon.png to ico
+        shell: pwsh
+        run: |
+          if (-Not (Test-Path "icon.png")) {
+            throw "icon.png not found in repository root."
+          }
+          python - <<'PY'
+          from PIL import Image
+          img = Image.open("icon.png").convert("RGBA")
+          img.save("icon.ico", format="ICO", sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          PY
+
+      - name: Build Windows app bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          pyinstaller --noconfirm --clean --windowed --onedir --name HomeworkIsland `
+            --icon "icon.ico" `
+            --add-data "qml;qml" `
+            --add-data "view;view" `
+            --add-data "about.html;." `
+            --add-data "icon.png;." `
+            main.py
+
+          New-Item -ItemType Directory -Force -Path "dist\HomeworkIsland\project" | Out-Null
+          robocopy . "dist\HomeworkIsland\project" /E /XD .git .github .venv build dist __pycache__ /XF *.pyc
+          if ($LASTEXITCODE -gt 7) { exit $LASTEXITCODE }
+
+      - name: Package artifact
+        shell: pwsh
+        run: |
+          $pkg = "HomeworkIsland-windows-${{ matrix.label }}"
+          Compress-Archive -Path "dist\HomeworkIsland\*" -DestinationPath "$pkg.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HomeworkIsland-windows-${{ matrix.label }}
+          path: HomeworkIsland-windows-${{ matrix.label }}.zip
+
+  build-deb:
+    name: Debian (${{ matrix.deb_arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            deb_arch: amd64
+          - runner: ubuntu-24.04-arm
+            deb_arch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build deb package
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          APP_NAME="homework-island"
+          APP_VER="0.1.${GITHUB_RUN_NUMBER}"
+          PKG_ROOT="$PWD/pkgroot"
+          INSTALL_DIR="$PKG_ROOT/opt/$APP_NAME"
+
+          mkdir -p "$INSTALL_DIR"
+          rsync -a ./ "$INSTALL_DIR/" --exclude .git --exclude .github --exclude .venv --exclude build --exclude dist --exclude __pycache__
+
+          mkdir -p "$PKG_ROOT/usr/bin"
+          cat > "$PKG_ROOT/usr/bin/$APP_NAME" <<'EOF'
+          #!/usr/bin/env bash
+          set -e
+          cd /opt/homework-island
+          exec python3 /opt/homework-island/main.py
+          EOF
+          chmod +x "$PKG_ROOT/usr/bin/$APP_NAME"
+
+          mkdir -p "$PKG_ROOT/usr/share/applications"
+          cat > "$PKG_ROOT/usr/share/applications/$APP_NAME.desktop" <<EOF
+          [Desktop Entry]
+          Name=HomeworkIsland
+          Comment=Homework board app
+          Exec=/usr/bin/$APP_NAME
+          Icon=$APP_NAME
+          Terminal=false
+          Type=Application
+          Categories=Education;Utility;
+          EOF
+
+          mkdir -p "$PKG_ROOT/usr/share/icons/hicolor/256x256/apps"
+          cp "$INSTALL_DIR/icon.png" "$PKG_ROOT/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
+
+          mkdir -p "$PKG_ROOT/DEBIAN"
+          cat > "$PKG_ROOT/DEBIAN/control" <<EOF
+          Package: $APP_NAME
+          Version: $APP_VER
+          Section: utils
+          Priority: optional
+          Architecture: ${{ matrix.deb_arch }}
+          Maintainer: HomeworkIsland Builder <builder@example.com>
+          Depends: python3, python3-pyqt5
+          Description: Homework board app (PyQt + Qt Quick)
+           Includes project files and runs main.py from /opt/homework-island.
+          EOF
+
+          dpkg-deb --build "$PKG_ROOT" "${APP_NAME}_${APP_VER}_${{ matrix.deb_arch }}.deb"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HomeworkIsland-deb-${{ matrix.deb_arch }}
+          path: "*.deb"
