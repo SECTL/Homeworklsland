@@ -69,15 +69,15 @@ jobs:
             --include-data-dir=qml=qml `
             --include-data-dir=view=view `
             --include-data-file=about.html=about.html `
-            --include-data-file=icon.png=icon.png `
             --include-data-file=icon.ico=icon.ico `
+            --exclude=icon.png `
             --output-dir=build
 
       - name: Include full project snapshot
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "build\main.dist\project" | Out-Null
-          robocopy . "build\main.dist\project" /E /XD .git .github .venv build dist __pycache__ /XF *.pyc
+          robocopy . "build\main.dist\project" /E /XD .git .github .venv build dist __pycache__ /XF *.pyc icon.png
           if ($LASTEXITCODE -gt 7) { exit $LASTEXITCODE }
 
       - name: Pack artifact
@@ -138,8 +138,8 @@ jobs:
             --include-data-dir=qml=qml \
             --include-data-dir=view=view \
             --include-data-file=about.html=about.html \
-            --include-data-file=icon.png=icon.png \
             --include-data-file=icon.ico=icon.ico \
+            --exclude=icon.png \
             --output-dir=build
 
       - name: Build .deb
@@ -156,7 +156,7 @@ jobs:
           cp -r build/main.dist/* "$INSTALL_DIR/runtime/"
 
           mkdir -p "$INSTALL_DIR/project"
-          rsync -a ./ "$INSTALL_DIR/project/" --exclude .git --exclude .github --exclude .venv --exclude build --exclude dist --exclude __pycache__
+          rsync -a ./ "$INSTALL_DIR/project/" --exclude .git --exclude .github --exclude .venv --exclude build --exclude dist --exclude __pycache__ --exclude icon.png
 
           mkdir -p "$PKG_ROOT/usr/bin"
           cat > "$PKG_ROOT/usr/bin/$APP_NAME" <<'EOF'
