@@ -78,6 +78,7 @@ jobs:
           robocopy . "release\project" /E /XD build dist release __pycache__ /XF *.pyc
           $rc = $LASTEXITCODE
           if ($rc -ge 8) { exit $rc }
+          $global:LASTEXITCODE = 0
 
           Copy-Item "dist\main.exe" "release\HomeworkIsland-${{ matrix.arch_label }}.exe" -Force
           Compress-Archive -Path "release\HomeworkIsland-${{ matrix.arch_label }}.exe","release\project\*" `
