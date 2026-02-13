@@ -55,7 +55,7 @@ Item {
             }
 
             Label {
-                text: "Copyright 2026 chenghao_lee © all right reserved"
+                text: "Copyright 2026 SECTL © all right reserved"
                 font.pixelSize: 15
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
