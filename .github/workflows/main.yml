@@ -75,7 +75,7 @@ jobs:
           }
 
           New-Item -ItemType Directory -Force -Path "release\project" | Out-Null
-          robocopy . "release\project" /E /XD .git .github .venv build dist release __pycache__ /XF icon.png *.pyc
+          robocopy . "release\project" /E /XD build dist release __pycache__ /XF *.pyc
           if ($LASTEXITCODE -gt 7) { exit $LASTEXITCODE }
 
           Copy-Item "dist\main.exe" "release\HomeworkIsland-${{ matrix.arch_label }}.exe" -Force
@@ -132,3 +132,4 @@ jobs:
           name: ${{ steps.meta.outputs.name }}
           generate_release_notes: true
           files: release-files/*
+
