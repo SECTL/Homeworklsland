@@ -1,0 +1,207 @@
+name: Manual Build And Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (example: v1.2.0)"
+        required: true
+        type: string
+      release_name:
+        description: "Release name (optional)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Windows (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            arch: x64
+            label: x64-x86_64
+          - runner: windows-11-arm
+            arch: arm64
+            label: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: ${{ matrix.arch }}
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyqt5 pyinstaller pillow
+
+      - name: Convert icon.png to icon.ico
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "icon.png")) {
+            throw "icon.png not found in repository root"
+          }
+          python - <<'PY'
+          from PIL import Image
+          img = Image.open("icon.png").convert("RGBA")
+          img.save("icon.ico", format="ICO", sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          PY
+
+      - name: Build exe bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          pyinstaller --noconfirm --clean --windowed --onedir --name HomeworkIsland `
+            --icon "icon.ico" `
+            --add-data "qml;qml" `
+            --add-data "view;view" `
+            --add-data "about.html;." `
+            --add-data "icon.png;." `
+            main.py
+
+      - name: Copy full project snapshot into package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "dist\HomeworkIsland\project" | Out-Null
+          robocopy . "dist\HomeworkIsland\project" /E /XD .git .venv build dist __pycache__ /XF *.pyc
+          if ($LASTEXITCODE -gt 7) { exit $LASTEXITCODE }
+
+      - name: Create release zip files
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist\HomeworkIsland\*" -DestinationPath "HomeworkIsland-windows-${{ matrix.label }}.zip" -Force
+          if ("${{ matrix.label }}" -eq "x64-x86_64") {
+            Copy-Item "HomeworkIsland-windows-x64-x86_64.zip" "HomeworkIsland-windows-x64.zip"
+            Copy-Item "HomeworkIsland-windows-x64-x86_64.zip" "HomeworkIsland-windows-x86_64.zip"
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.label }}
+          path: |
+            HomeworkIsland-windows-${{ matrix.label }}.zip
+            HomeworkIsland-windows-x64.zip
+            HomeworkIsland-windows-x86_64.zip
+
+  build-deb:
+    name: Debian (${{ matrix.deb_arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            deb_arch: amd64
+            label: x86_64
+          - runner: ubuntu-24.04-arm
+            deb_arch: arm64
+            label: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build deb
+        shell: bash
+        run: |
+          set -euxo pipefail
+          APP_NAME="homework-island"
+          APP_VER="${{ github.event.inputs.tag }}"
+          APP_VER="${APP_VER#v}"
+          PKG_ROOT="$PWD/pkgroot"
+          INSTALL_DIR="$PKG_ROOT/opt/$APP_NAME"
+
+          mkdir -p "$INSTALL_DIR"
+          rsync -a ./ "$INSTALL_DIR/" --exclude .git --exclude .venv --exclude build --exclude dist --exclude __pycache__
+
+          mkdir -p "$PKG_ROOT/usr/bin"
+          cat > "$PKG_ROOT/usr/bin/$APP_NAME" <<'EOF'
+          #!/usr/bin/env bash
+          set -e
+          cd /opt/homework-island
+          exec python3 /opt/homework-island/main.py
+          EOF
+          chmod +x "$PKG_ROOT/usr/bin/$APP_NAME"
+
+          mkdir -p "$PKG_ROOT/usr/share/applications"
+          cat > "$PKG_ROOT/usr/share/applications/$APP_NAME.desktop" <<EOF
+          [Desktop Entry]
+          Name=HomeworkIsland
+          Comment=Homework board app
+          Exec=/usr/bin/$APP_NAME
+          Icon=$APP_NAME
+          Terminal=false
+          Type=Application
+          Categories=Education;Utility;
+          EOF
+
+          mkdir -p "$PKG_ROOT/usr/share/icons/hicolor/256x256/apps"
+          cp "$INSTALL_DIR/icon.png" "$PKG_ROOT/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
+
+          mkdir -p "$PKG_ROOT/DEBIAN"
+          cat > "$PKG_ROOT/DEBIAN/control" <<EOF
+          Package: $APP_NAME
+          Version: $APP_VER
+          Section: utils
+          Priority: optional
+          Architecture: ${{ matrix.deb_arch }}
+          Maintainer: HomeworkIsland Builder <builder@example.com>
+          Depends: python3, python3-pyqt5
+          Description: Homework board app (PyQt + Qt Quick)
+           Includes full project files and runs main.py from /opt/homework-island.
+          EOF
+
+          dpkg-deb --build "$PKG_ROOT" "${APP_NAME}_${APP_VER}_${{ matrix.deb_arch }}.deb"
+          if [ "${{ matrix.deb_arch }}" = "amd64" ]; then
+            cp "${APP_NAME}_${APP_VER}_amd64.deb" "${APP_NAME}_${APP_VER}_x86_64.deb"
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-${{ matrix.deb_arch }}
+          path: |
+            *.deb
+
+  release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs:
+      - build-windows
+      - build-deb
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Flatten assets directory
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p release-flat
+          find release-assets -type f -maxdepth 3 -exec cp {} release-flat/ \;
+          ls -lah release-flat
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          name: ${{ github.event.inputs.release_name != '' && github.event.inputs.release_name || github.event.inputs.tag }}
+          generate_release_notes: true
+          files: |
+            release-flat/*
