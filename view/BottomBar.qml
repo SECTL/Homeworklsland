@@ -5,6 +5,9 @@ import QtQuick.Layouts 1.12
 Rectangle {
     id: root
     property real uiScale: 1.0
+    property string appFontFamily: ""
+    property color bgColor: "#F5EFE6"
+    property color borderColor: "#E1D6C8"
     signal requestAssign()
     signal requestSettings()
     signal toggleFullscreen()
@@ -12,8 +15,8 @@ Rectangle {
     signal requestHide()
 
     height: Math.round(56 * root.uiScale)
-    color: "#F5EFE6"
-    border.color: "#E1D6C8"
+    color: root.bgColor
+    border.color: root.borderColor
     border.width: 1
 
     RowLayout {
@@ -24,6 +27,7 @@ Rectangle {
         Button {
             text: "布置新作业"
             font.pixelSize: Math.round(12 * root.uiScale)
+            font.family: root.appFontFamily
             height: Math.round(32 * root.uiScale)
             padding: Math.round(6 * root.uiScale)
             onClicked: root.requestAssign()
@@ -37,6 +41,7 @@ Rectangle {
             Button {
                 text: "设置"
                 font.pixelSize: Math.round(12 * root.uiScale)
+                font.family: root.appFontFamily
                 height: Math.round(32 * root.uiScale)
                 padding: Math.round(6 * root.uiScale)
                 onClicked: root.requestSettings()
@@ -44,6 +49,7 @@ Rectangle {
             Button {
                 text: "全屏"
                 font.pixelSize: Math.round(12 * root.uiScale)
+                font.family: root.appFontFamily
                 height: Math.round(32 * root.uiScale)
                 padding: Math.round(6 * root.uiScale)
                 onClicked: root.toggleFullscreen()
@@ -51,6 +57,7 @@ Rectangle {
             Button {
                 text: "收起"
                 font.pixelSize: Math.round(12 * root.uiScale)
+                font.family: root.appFontFamily
                 height: Math.round(32 * root.uiScale)
                 padding: Math.round(6 * root.uiScale)
                 onClicked: root.requestHide()
@@ -58,6 +65,7 @@ Rectangle {
             Button {
                 text: "退出"
                 font.pixelSize: Math.round(12 * root.uiScale)
+                font.family: root.appFontFamily
                 height: Math.round(32 * root.uiScale)
                 padding: Math.round(6 * root.uiScale)
                 onClicked: root.requestExit()

@@ -20,6 +20,7 @@ class SaveService(QObject):
         self._base_dir = base_dir
         self._saves_dir = os.path.join(base_dir, "saves")
         self._config_file = os.path.join(self._saves_dir, "config.json")
+        self._dev_file = os.path.join(base_dir, "dev.txt")
         os.makedirs(self._saves_dir, exist_ok=True)
 
     def _today_str(self) -> str:
@@ -80,6 +81,19 @@ class SaveService(QObject):
         actual = self._hash_password(password or "")
         return hmac.compare_digest(expected, actual)
 
+    @Slot(str, result=bool)
+    def clearPassword(self, password: str) -> bool:
+        cfg = self._load_config()
+        expected = cfg.get("passwordHash", "")
+        if not isinstance(expected, str) or len(expected) == 0:
+            return True
+        actual = self._hash_password(password or "")
+        if not hmac.compare_digest(expected, actual):
+            return False
+        cfg["passwordHash"] = ""
+        cfg["passwordUpdatedAt"] = datetime.now().isoformat(timespec="seconds")
+        return self._save_config(cfg)
+
     @Slot(result=str)
     def loadAboutHtml(self) -> str:
         html_path = os.path.join(self._base_dir, "about.html")
@@ -101,6 +115,88 @@ class SaveService(QObject):
         if "</head>" in html:
             return html.replace("</head>", bg_style + "</head>", 1)
         return "<html><head>" + bg_style + "</head><body>" + html + "</body></html>"
+
+    @Slot(result=str)
+    def systemFontFamilies(self) -> str:
+        families = QFontDatabase().families()
+        return json.dumps(sorted(families), ensure_ascii=False)
+
+    @Slot(result=str)
+    def currentAppFontFamily(self) -> str:
+        app = QApplication.instance()
+        if app is None:
+            return ""
+        return app.font().family()
+
+    @Slot(str, result=bool)
+    def setAppFontFamily(self, family: str) -> bool:
+        clean = (family or "").strip()
+        if not clean:
+            return False
+        families = set(QFontDatabase().families())
+        if clean not in families:
+            return False
+        app = QApplication.instance()
+        if app is None:
+            return False
+        f = app.font()
+        f.setFamily(clean)
+        app.setFont(f)
+        cfg = self._load_config()
+        cfg["appFontFamily"] = clean
+        cfg["fontUpdatedAt"] = datetime.now().isoformat(timespec="seconds")
+        return self._save_config(cfg)
+
+    @Slot(result=str)
+    def savedAppFontFamily(self) -> str:
+        cfg = self._load_config()
+        v = cfg.get("appFontFamily", "")
+        return v if isinstance(v, str) else ""
+
+    @Slot(result=bool)
+    def isOnboardingNeeded(self) -> bool:
+        cfg = self._load_config()
+        done = cfg.get("onboardingDone", False)
+        return not bool(done)
+
+    @Slot(result=bool)
+    def markOnboardingDone(self) -> bool:
+        cfg = self._load_config()
+        cfg["onboardingDone"] = True
+        cfg["onboardingUpdatedAt"] = datetime.now().isoformat(timespec="seconds")
+        return self._save_config(cfg)
+
+    @Slot(result=bool)
+    def resetOnboarding(self) -> bool:
+        cfg = self._load_config()
+        cfg["onboardingDone"] = False
+        cfg["onboardingUpdatedAt"] = datetime.now().isoformat(timespec="seconds")
+        return self._save_config(cfg)
+
+    @Slot(result=bool)
+    def isDevTipsEnabled(self) -> bool:
+        if not os.path.exists(self._dev_file):
+            return False
+        try:
+            with open(self._dev_file, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        except OSError:
+            return False
+
+        for line in lines:
+            raw = line.strip()
+            if not raw or raw.startswith("#"):
+                continue
+            normalized = raw.replace(" ", "")
+            if normalized.startswith("dev_tips"):
+                if "=" in normalized:
+                    value = normalized.split("=", 1)[1]
+                elif ":" in normalized:
+                    value = normalized.split(":", 1)[1]
+                else:
+                    continue
+                return value.lower() == "true"
+        return False
 
     @Slot(result=str)
     def loadToday(self) -> str:
@@ -160,6 +256,13 @@ def main() -> int:
                 app.setFont(QFont(families[0]))
 
     save_service = SaveService(project_dir)
+    saved_family = save_service.savedAppFontFamily()
+    if saved_family:
+        families = set(QFontDatabase().families())
+        if saved_family in families:
+            f = app.font()
+            f.setFamily(saved_family)
+            app.setFont(f)
 
     engine = QQmlApplicationEngine()
     engine.rootContext().setContextProperty("saveService", save_service)
@@ -190,6 +293,12 @@ def main() -> int:
         return False
 
     def build_tray_icon() -> QIcon:
+        icon_path = os.path.join(project_dir, "icon.png")
+        if os.path.exists(icon_path):
+            file_icon = QIcon(icon_path)
+            if not file_icon.isNull():
+                return file_icon
+
         icon = QIcon.fromTheme("view-calendar")
         if not icon.isNull():
             return icon
@@ -231,7 +340,7 @@ def main() -> int:
     action_toggle.triggered.connect(toggle_mini_widget)
     menu.addAction(action_toggle)
 
-    action_settings = QAction("打卡设置窗口", menu)
+    action_settings = QAction("打开设置窗口", menu)
     action_settings.triggered.connect(show_settings)
     menu.addAction(action_settings)
 

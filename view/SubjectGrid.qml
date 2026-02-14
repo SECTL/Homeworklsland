@@ -7,6 +7,11 @@ Flickable {
     property var subjectEntries: []
     property real displayScale: 1.0
     property real uiScale: 1.0
+    property string appFontFamily: ""
+    property color cardColor: "#FFFFFF"
+    property color borderColor: "#E1D6C8"
+    property color textPrimaryColor: "#3B2E24"
+    property color textSecondaryColor: "#5B4A3C"
     clip: true
     contentWidth: width
     contentHeight: flow.implicitHeight * displayScale + Math.round(24 * root.uiScale)
@@ -30,6 +35,11 @@ Flickable {
                 subjectName: modelData.name
                 modelRef: modelData.model
                 uiScale: root.uiScale
+                appFontFamily: root.appFontFamily
+                cardColor: root.cardColor
+                borderColor: root.borderColor
+                textPrimaryColor: root.textPrimaryColor
+                textSecondaryColor: root.textSecondaryColor
             }
         }
     }

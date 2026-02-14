@@ -6,6 +6,7 @@ Item {
     id: root
     property var subjectNames: []
     property real uiScale: 1.0
+    property string appFontFamily: ""
     signal submitAssignment(string subject, string title, bool isExercise, int startPage, int endPage, string note, string tags)
 
     Flickable {
@@ -25,12 +26,14 @@ Item {
             Label {
                 text: "新作业编辑区"
                 font.pixelSize: Math.round(22 * root.uiScale)
+                font.family: root.appFontFamily
             }
 
             ComboBox {
                 id: subjectBox
                 Layout.fillWidth: true
                 font.pixelSize: Math.round(16 * root.uiScale)
+                font.family: root.appFontFamily
                 implicitHeight: Math.round(40 * root.uiScale)
                 model: root.subjectNames
             }
@@ -39,6 +42,7 @@ Item {
                 id: titleField
                 Layout.fillWidth: true
                 font.pixelSize: Math.round(16 * root.uiScale)
+                font.family: root.appFontFamily
                 implicitHeight: Math.round(40 * root.uiScale)
                 placeholderText: "作业内容（如：课后题 1-8）"
             }
@@ -47,6 +51,7 @@ Item {
                 id: exerciseCheck
                 text: "练习册"
                 font.pixelSize: Math.round(14 * root.uiScale)
+                font.family: root.appFontFamily
             }
 
             RowLayout {
@@ -57,6 +62,7 @@ Item {
                     id: startPage
                     Layout.fillWidth: true
                     font.pixelSize: Math.round(16 * root.uiScale)
+                    font.family: root.appFontFamily
                     implicitHeight: Math.round(40 * root.uiScale)
                     placeholderText: "起始页"
                     enabled: exerciseCheck.checked
@@ -66,6 +72,7 @@ Item {
                     id: endPage
                     Layout.fillWidth: true
                     font.pixelSize: Math.round(16 * root.uiScale)
+                    font.family: root.appFontFamily
                     implicitHeight: Math.round(40 * root.uiScale)
                     placeholderText: "终结页"
                     enabled: exerciseCheck.checked
@@ -77,6 +84,7 @@ Item {
                 id: noteArea
                 Layout.fillWidth: true
                 font.pixelSize: Math.round(15 * root.uiScale)
+                font.family: root.appFontFamily
                 Layout.preferredHeight: Math.round(90 * root.uiScale)
                 placeholderText: "备注"
             }
@@ -85,6 +93,7 @@ Item {
                 id: tagsField
                 Layout.fillWidth: true
                 font.pixelSize: Math.round(16 * root.uiScale)
+                font.family: root.appFontFamily
                 implicitHeight: Math.round(40 * root.uiScale)
                 placeholderText: "标签（用逗号分隔，如：放学前必须交,家长签字）"
             }
@@ -93,6 +102,7 @@ Item {
                 text: "添加作业"
                 Layout.fillWidth: true
                 font.pixelSize: Math.round(16 * root.uiScale)
+                font.family: root.appFontFamily
                 implicitHeight: Math.round(42 * root.uiScale)
                 enabled: root.subjectNames.length > 0
                 onClicked: {

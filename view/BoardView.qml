@@ -7,6 +7,11 @@ Item {
     id: root
     property var subjectEntries: []
     property real uiScale: 1.0
+    property real timeScale: 1.0
+    property string appFontFamily: ""
+    property color headerColor: "#EFE7DA"
+    property color textPrimaryColor: "#3B2E24"
+    property color textSecondaryColor: "#5B4A3C"
 
     implicitHeight: header.height
 
@@ -26,7 +31,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         height: Math.round(120 * root.uiScale)
-        color: "#EFE7DA"
+        color: root.headerColor
 
         MouseArea {
             anchors.fill: parent
@@ -50,9 +55,10 @@ Item {
 
                 Text {
                     id: timeText
-                    font.pixelSize: Math.round(28 * root.uiScale)
+                    font.pixelSize: Math.round(28 * root.uiScale * root.timeScale)
+                    font.family: root.appFontFamily
                     font.bold: true
-                    color: "#3B2E24"
+                    color: root.textPrimaryColor
                     text: ""
                 }
 
@@ -61,8 +67,9 @@ Item {
 
             Text {
                 id: dateText
-                font.pixelSize: Math.round(14 * root.uiScale)
-                color: "#5B4A3C"
+                font.pixelSize: Math.round(14 * root.uiScale * root.timeScale)
+                font.family: root.appFontFamily
+                color: root.textSecondaryColor
                 text: ""
             }
         }

@@ -4,6 +4,18 @@ import QtQuick.Layouts 1.12
 
 Item {
     id: root
+    property bool hasPassword: false
+
+    function refreshStatus() {
+        if (typeof saveService === "undefined" || !saveService) {
+            hasPassword = false
+        } else {
+            hasPassword = saveService.hasPassword()
+        }
+        statusLabel.text = hasPassword ? "当前状态：已设置密码" : "当前状态：未设置密码"
+    }
+
+    Component.onCompleted: refreshStatus()
 
     Flickable {
         anchors.fill: parent
@@ -33,9 +45,7 @@ Item {
 
             Label {
                 id: statusLabel
-                text: (typeof saveService !== "undefined" && saveService && saveService.hasPassword())
-                    ? "当前状态：已设置密码"
-                    : "当前状态：未设置密码"
+                text: "当前状态：未设置密码"
                 color: "#5F6A6A"
             }
 
@@ -87,7 +97,88 @@ Item {
                     pwd2.text = ""
                     messageLabel.color = "#1E8449"
                     messageLabel.text = "密码已保存"
-                    statusLabel.text = "当前状态：已设置密码"
+                    root.refreshStatus()
+                }
+            }
+
+            Button {
+                text: "关闭密码"
+                Layout.fillWidth: true
+                enabled: root.hasPassword
+                onClicked: {
+                    closePwdField.text = ""
+                    closePwdError.text = ""
+                    closePasswordPopup.open()
+                }
+            }
+        }
+    }
+
+    Popup {
+        id: closePasswordPopup
+        modal: true
+        focus: true
+        dim: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        anchors.centerIn: parent
+        width: 360
+        height: 210
+
+        background: Rectangle {
+            radius: 12
+            color: "#FFFFFF"
+            border.color: "#D9D9D9"
+            border.width: 1
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 16
+            spacing: 10
+
+            Label {
+                text: "请输入当前密码以关闭密码保护"
+                wrapMode: Text.Wrap
+            }
+
+            TextField {
+                id: closePwdField
+                Layout.fillWidth: true
+                echoMode: TextInput.Password
+                placeholderText: "当前密码"
+            }
+
+            Label {
+                id: closePwdError
+                text: ""
+                color: "#B03A2E"
+                visible: text.length > 0
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: "取消"
+                    onClicked: closePasswordPopup.close()
+                }
+                Button {
+                    text: "确认关闭"
+                    onClicked: {
+                        if (typeof saveService === "undefined" || !saveService) {
+                            closePwdError.text = "后端服务不可用"
+                            return
+                        }
+                        var ok = saveService.clearPassword(closePwdField.text)
+                        if (!ok) {
+                            closePwdError.text = "密码错误"
+                            return
+                        }
+                        closePasswordPopup.close()
+                        messageLabel.color = "#1E8449"
+                        messageLabel.text = "已关闭密码保护"
+                        root.refreshStatus()
+                    }
                 }
             }
         }

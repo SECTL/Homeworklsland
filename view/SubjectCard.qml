@@ -7,10 +7,15 @@ Rectangle {
     property string subjectName: ""
     property var modelRef
     property real uiScale: 1.0
+    property string appFontFamily: ""
+    property color cardColor: "#FFFFFF"
+    property color borderColor: "#E1D6C8"
+    property color textPrimaryColor: "#3B2E24"
+    property color textSecondaryColor: "#5B4A3C"
 
     radius: Math.round(12 * root.uiScale)
-    color: "#FFFFFF"
-    border.color: "#E1D6C8"
+    color: root.cardColor
+    border.color: root.borderColor
     border.width: 1
     height: listColumn.implicitHeight + Math.round(20 * root.uiScale)
 
@@ -23,8 +28,9 @@ Rectangle {
         Text {
             text: subjectName
             font.pixelSize: Math.round(16 * root.uiScale)
+            font.family: root.appFontFamily
             font.bold: true
-            color: "#3B2E24"
+            color: root.textPrimaryColor
         }
 
         Repeater {
@@ -35,7 +41,8 @@ Rectangle {
                 Text {
                     text: "• " + title
                     font.pixelSize: Math.round(13 * root.uiScale)
-                    color: "#3B2E24"
+                    font.family: root.appFontFamily
+                    color: root.textPrimaryColor
                     wrapMode: Text.Wrap
                 }
 
@@ -43,7 +50,8 @@ Rectangle {
                     visible: detail.length > 0
                     text: detail
                     font.pixelSize: Math.round(11 * root.uiScale)
-                    color: "#6C5B4C"
+                    font.family: root.appFontFamily
+                    color: root.textSecondaryColor
                     wrapMode: Text.Wrap
                 }
 
@@ -51,7 +59,8 @@ Rectangle {
                     visible: note.length > 0
                     text: "备注: " + note
                     font.pixelSize: Math.round(11 * root.uiScale)
-                    color: "#7A6757"
+                    font.family: root.appFontFamily
+                    color: root.textSecondaryColor
                     wrapMode: Text.Wrap
                 }
 
@@ -59,6 +68,7 @@ Rectangle {
                     visible: tags.length > 0
                     text: "标签: " + tags
                     font.pixelSize: Math.round(11 * root.uiScale)
+                    font.family: root.appFontFamily
                     color: "#8A5B3B"
                     wrapMode: Text.Wrap
                 }
@@ -75,6 +85,7 @@ Rectangle {
             visible: modelRef && modelRef.count === 0
             text: "暂无作业"
             font.pixelSize: Math.round(12 * root.uiScale)
+            font.family: root.appFontFamily
             color: "#A08C7A"
         }
     }

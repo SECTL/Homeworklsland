@@ -1,0 +1,79 @@
+name: PyInstaller Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. v1.0.0)"
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x64, x86_64, arm64]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+
+      - name: Add auto-create saves folder
+        run: |
+          # 在main.py中添加自动创建saves文件夹的代码
+          echo -e "\nimport os\nif not os.path.exists('saves'):\n    os.makedirs('saves')\n" >> main.py
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --onefile \
+            --add-data=".:." \
+            --exclude="*.pyc" \
+            --exclude=".gitignore" \
+            --exclude=".github" \
+            --exclude="__pycache__" \
+            --name=myapp_${{ matrix.arch }} \
+            main.py
+
+      - name: Package artifacts
+        run: |
+          mkdir -p dist/${{ matrix.arch }}
+          cp dist/myapp_${{ matrix.arch }} dist/${{ matrix.arch }}/
+          cp -r saves/ dist/${{ matrix.arch }}/ || true
+          tar -czvf myapp_${{ matrix.arch }}.tar.gz -C dist/${{ matrix.arch }} .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: myapp_${{ matrix.arch }}
+          path: myapp_${{ matrix.arch }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: dist
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: Release ${{ github.event.inputs.version }}
+          files: |
+            dist/*.tar.gz

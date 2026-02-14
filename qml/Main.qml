@@ -10,6 +10,17 @@ Item {
     property bool boardVisible: true
     property bool fullScreen: false
     property real displayScale: 1.2
+    property real appFontScale: 1.0
+    property real timeDisplayScale: 1.0
+    property string appFontFamily: ""
+    property string themePreset: "warm"
+    property color surfaceColor: "#F8F6F2"
+    property color headerColor: "#EFE7DA"
+    property color menuColor: "#F5EFE6"
+    property color cardColor: "#FFFFFF"
+    property color borderColor: "#E1D6C8"
+    property color textPrimaryColor: "#3B2E24"
+    property color textSecondaryColor: "#5B4A3C"
     property real uiScale: {
         var g = (boardWindow && boardWindow.avail) ? boardWindow.avail : Qt.rect(0, 0, 1920, 1080)
         var s = Math.min(g.width / 1920.0, g.height / 1080.0)
@@ -18,6 +29,8 @@ Item {
     property var visibleSubjectEntries: []
     property int subjectsVersion: 0
     property string activeDay: ""
+    property bool devTipsEnabled: false
+    property bool onboardingNeeded: false
     signal showBoard()
     signal hideBoard()
     signal showSettings()
@@ -27,12 +40,55 @@ Item {
         return Math.round(px * uiScale)
     }
 
+    function refreshDevTips() {
+        if (typeof saveService === "undefined" || !saveService) {
+            devTipsEnabled = false
+            return
+        }
+        devTipsEnabled = saveService.isDevTipsEnabled()
+    }
+
+    function applyThemePreset(preset) {
+        themePreset = preset
+        if (preset === "cool") {
+            surfaceColor = "#F1F6FA"
+            headerColor = "#DFEAF3"
+            menuColor = "#EAF1F7"
+            cardColor = "#FFFFFF"
+            borderColor = "#C8D8E6"
+            textPrimaryColor = "#233243"
+            textSecondaryColor = "#425A73"
+            return
+        }
+        if (preset === "dark") {
+            surfaceColor = "#222629"
+            headerColor = "#2B3136"
+            menuColor = "#2F353B"
+            cardColor = "#31363D"
+            borderColor = "#48515A"
+            textPrimaryColor = "#ECEFF2"
+            textSecondaryColor = "#BDC6CF"
+            return
+        }
+        surfaceColor = "#F8F6F2"
+        headerColor = "#EFE7DA"
+        menuColor = "#F5EFE6"
+        cardColor = "#FFFFFF"
+        borderColor = "#E1D6C8"
+        textPrimaryColor = "#3B2E24"
+        textSecondaryColor = "#5B4A3C"
+    }
+
     function boardDefaultWidth(g) {
-        return Math.round(Math.max(900, Math.min(2165, g.width * 0.96)))
+        var scale = Math.min(g.width / 1920.0, g.height / 1080.0)
+        var target = Math.round(1339 * scale)
+        return Math.max(760, Math.min(target, Math.round(g.width * 0.96)))
     }
 
     function boardDefaultHeight(g) {
-        return Math.round(Math.max(640, Math.min(1233, g.height * 0.96)))
+        var scale = Math.min(g.width / 1920.0, g.height / 1080.0)
+        var target = Math.round(697 * scale)
+        return Math.max(460, Math.min(target, Math.round(g.height * 0.96)))
     }
 
     function settingsDefaultWidth(g) {
@@ -274,6 +330,27 @@ Item {
         authPopup.open()
     }
 
+    function startOnboardingFlow() {
+        onboardingNeeded = true
+        boardVisible = false
+        boardWindow.visible = false
+        miniWindow.visible = false
+        settingsWindow.visible = false
+        splashWindow.visible = false
+        onboardingWindow.visible = true
+        onboardingWindow.raise()
+        onboardingWindow.requestActivate()
+    }
+
+    function applyGlobalFontFamily(family) {
+        if (typeof saveService === "undefined" || !saveService) {
+            return
+        }
+        if (saveService.setAppFontFamily(family)) {
+            appFontFamily = saveService.currentAppFontFamily()
+        }
+    }
+
     function handleDayRollover() {
         var nowDay = currentDayValue()
         if (nowDay.length === 0) {
@@ -292,6 +369,12 @@ Item {
     }
 
     Component.onCompleted: {
+        applyThemePreset(themePreset)
+        refreshDevTips()
+        if (typeof saveService !== "undefined" && saveService) {
+            appFontFamily = saveService.currentAppFontFamily()
+            onboardingNeeded = saveService.isOnboardingNeeded()
+        }
         refreshVisibleSubjects()
         loadTodayState()
     }
@@ -310,6 +393,13 @@ Item {
         onTriggered: handleDayRollover()
     }
 
+    Timer {
+        interval: 3000
+        running: true
+        repeat: true
+        onTriggered: refreshDevTips()
+    }
+
     Window {
         id: boardWindow
         readonly property var avail: (screen && screen.availableGeometry) ? screen.availableGeometry : Qt.rect(0, 0, 1920, 1080)
@@ -317,9 +407,9 @@ Item {
         property bool startupPositioned: false
         width: appRoot.boardDefaultWidth(avail)
         height: appRoot.boardDefaultHeight(avail)
-        color: "#F8F6F2"
+        color: appRoot.surfaceColor
         flags: Qt.FramelessWindowHint | Qt.Window
-        visible: true
+        visible: !appRoot.onboardingNeeded
 
         property int compactMargin: 16
 
@@ -377,6 +467,9 @@ Item {
         Connections {
             target: appRoot
             function onShowBoard() {
+                if (appRoot.onboardingNeeded) {
+                    return
+                }
                 boardWindow.visible = true
                 appRoot.boardVisible = true
                 boardWindow.updatePosition()
@@ -392,14 +485,19 @@ Item {
 
         Rectangle {
             anchors.fill: parent
-            color: "#F8F6F2"
+            color: appRoot.surfaceColor
 
             View.BoardView {
                 id: boardView
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                uiScale: appRoot.uiScale
+                uiScale: appRoot.uiScale * appRoot.appFontScale
+                timeScale: appRoot.timeDisplayScale
+                appFontFamily: appRoot.appFontFamily
+                headerColor: appRoot.headerColor
+                textPrimaryColor: appRoot.textPrimaryColor
+                textSecondaryColor: appRoot.textSecondaryColor
                 subjectEntries: appRoot.visibleSubjectEntries
             }
 
@@ -413,7 +511,12 @@ Item {
                 }
                 subjectEntries: appRoot.visibleSubjectEntries
                 displayScale: appRoot.displayScale
-                uiScale: appRoot.uiScale
+                uiScale: appRoot.uiScale * appRoot.appFontScale
+                appFontFamily: appRoot.appFontFamily
+                cardColor: appRoot.cardColor
+                borderColor: appRoot.borderColor
+                textPrimaryColor: appRoot.textPrimaryColor
+                textSecondaryColor: appRoot.textSecondaryColor
             }
 
             Popup {
@@ -435,7 +538,8 @@ Item {
 
                 View.AssignView {
                     anchors.fill: parent
-                    uiScale: appRoot.uiScale
+                    uiScale: appRoot.uiScale * appRoot.appFontScale
+                    appFontFamily: appRoot.appFontFamily
                     subjectNames: {
                         appRoot.subjectsVersion
                         return appRoot.getEnabledSubjectNames()
@@ -449,7 +553,10 @@ Item {
 
             View.BottomBar {
                 id: bottomBar
-                uiScale: appRoot.uiScale
+                uiScale: appRoot.uiScale * appRoot.appFontScale
+                appFontFamily: appRoot.appFontFamily
+                bgColor: appRoot.menuColor
+                borderColor: appRoot.borderColor
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
@@ -532,6 +639,10 @@ Item {
                 }
             }
 
+            View.DevTipsBadge {
+                enabled: appRoot.devTipsEnabled
+                uiScale: appRoot.uiScale
+            }
         }
     }
 
@@ -543,7 +654,7 @@ Item {
         height: appRoot.scaled(88)
         flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
         color: "transparent"
-        visible: !appRoot.boardVisible
+        visible: !appRoot.boardVisible && !appRoot.onboardingNeeded
 
         x: avail.x + avail.width - width - 24
         y: avail.y + avail.height / 2 - height / 2
@@ -552,21 +663,26 @@ Item {
             anchors.fill: parent
             onOpenRequested: appRoot.showBoard()
         }
+
+        View.DevTipsBadge {
+            enabled: appRoot.devTipsEnabled
+            uiScale: appRoot.uiScale
+        }
     }
 
     Window {
         id: settingsWindow
         objectName: "settingsWindow"
         readonly property var avail: (screen && screen.availableGeometry) ? screen.availableGeometry : Qt.rect(0, 0, 1920, 1080)
-        width: appRoot.settingsDefaultWidth(avail)
-        height: appRoot.settingsDefaultHeight(avail)
-        minimumWidth: 760
-        minimumHeight: 520
-        maximumWidth: avail.width
-        maximumHeight: avail.height
+        width: 800
+        height: 600
+        minimumWidth: 800
+        minimumHeight: 600
+        maximumWidth: 800
+        maximumHeight: 600
         visible: false
-        color: "#F8F6F2"
-        flags: Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
+        color: appRoot.surfaceColor
+        flags: Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint
         title: "设置"
 
         x: Math.max(avail.x, avail.x + avail.width - width - 24)
@@ -575,24 +691,49 @@ Item {
         Connections {
             target: appRoot
             function onShowSettings() {
-                settingsWindow.width = appRoot.settingsDefaultWidth(settingsWindow.avail)
-                settingsWindow.height = appRoot.settingsDefaultHeight(settingsWindow.avail)
+                settingsWindow.width = 800
+                settingsWindow.height = 600
                 settingsWindow.visible = true
                 settingsWindow.raise()
                 settingsWindow.requestActivate()
             }
         }
 
+        onVisibilityChanged: {
+            if (visibility === Window.Minimized || visibility === Window.Maximized || visibility === Window.FullScreen) {
+                visibility = Window.Windowed
+            }
+        }
+
         View.SettingsShell {
             anchors.fill: parent
             displayScale: appRoot.displayScale
+            fontScale: appRoot.appFontScale
+            timeScale: appRoot.timeDisplayScale
+            themePreset: appRoot.themePreset
+            appFontFamily: appRoot.appFontFamily
             subjectOptions: {
                 appRoot.subjectsVersion
                 return appRoot.getSubjectOptions()
             }
             onDisplayScaleUpdated: appRoot.displayScale = value
+            onFontScaleUpdated: appRoot.appFontScale = value
+            onTimeScaleUpdated: appRoot.timeDisplayScale = value
+            onThemePresetUpdated: appRoot.applyThemePreset(preset)
+            onAppFontFamilyUpdated: appRoot.applyGlobalFontFamily(family)
             onSubjectEnabledUpdated: appRoot.setSubjectEnabled(name, enabled)
             onSubjectAdded: appRoot.addSubject(name)
+            onRerunOnboardingRequested: {
+                if (typeof saveService !== "undefined" && saveService) {
+                    saveService.resetOnboarding()
+                }
+                appRoot.startOnboardingFlow()
+            }
+        }
+
+        View.DevTipsBadge {
+            enabled: appRoot.devTipsEnabled
+            uiScale: appRoot.uiScale
         }
     }
 
@@ -602,7 +743,7 @@ Item {
         readonly property var avail: (screen && screen.availableGeometry) ? screen.availableGeometry : Qt.rect(0, 0, 1920, 1080)
         width: appRoot.boardDefaultWidth(avail)
         height: appRoot.boardDefaultHeight(avail)
-        visible: true
+        visible: !appRoot.onboardingNeeded
         color: "#FFFFFF"
         flags: Qt.Window
         title: "空白窗口"
@@ -611,5 +752,46 @@ Item {
         y: Math.max(avail.y, avail.y + (avail.height - height) / 2)
 
         Item { anchors.fill: parent }
+
+        View.DevTipsBadge {
+            enabled: appRoot.devTipsEnabled
+            uiScale: appRoot.uiScale
+        }
+    }
+
+    Window {
+        id: onboardingWindow
+        readonly property var avail: (screen && screen.availableGeometry) ? screen.availableGeometry : Qt.rect(0, 0, 1920, 1080)
+        width: Math.max(860, Math.min(1100, avail.width * 0.8))
+        height: Math.max(560, Math.min(760, avail.height * 0.8))
+        visible: appRoot.onboardingNeeded
+        modality: Qt.ApplicationModal
+        title: "初次引导"
+        color: appRoot.surfaceColor
+
+        x: avail.x + (avail.width - width) / 2
+        y: avail.y + (avail.height - height) / 2
+
+        View.OnboardingView {
+            anchors.fill: parent
+            themePreset: appRoot.themePreset
+            fontScale: appRoot.appFontScale
+            timeScale: appRoot.timeDisplayScale
+            onThemePresetUpdated: appRoot.applyThemePreset(preset)
+            onFontScaleUpdated: appRoot.appFontScale = value
+            onTimeScaleUpdated: appRoot.timeDisplayScale = value
+            onFinished: {
+                if (typeof saveService !== "undefined" && saveService) {
+                    saveService.markOnboardingDone()
+                }
+                appRoot.onboardingNeeded = false
+                onboardingWindow.visible = false
+                appRoot.boardVisible = true
+                boardWindow.visible = true
+                boardWindow.updatePosition()
+                boardWindow.raise()
+                boardWindow.requestActivate()
+            }
+        }
     }
 }

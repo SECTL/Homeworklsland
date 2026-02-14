@@ -6,12 +6,21 @@ Item {
     id: root
 
     property real displayScale: 1
+    property real fontScale: 1
+    property real timeScale: 1
+    property string themePreset: "warm"
+    property string appFontFamily: ""
     property var subjectOptions: []
     property int currentIndex: 0
 
     signal displayScaleUpdated(real value)
+    signal fontScaleUpdated(real value)
+    signal timeScaleUpdated(real value)
+    signal themePresetUpdated(string preset)
+    signal appFontFamilyUpdated(string family)
     signal subjectEnabledUpdated(string name, bool enabled)
     signal subjectAdded(string name)
+    signal rerunOnboardingRequested()
 
     Pane {
         id: sideNav
@@ -55,6 +64,12 @@ Item {
                     }, {
                         "title": "安全",
                         "subtitle": "密码与验证"
+                    }, {
+                        "title": "个性化",
+                        "subtitle": "字体与配色"
+                    }, {
+                        "title": "其他",
+                        "subtitle": "引导与实验"
                     }, {
                         "title": "关于",
                         "subtitle": "应用信息"
@@ -121,7 +136,15 @@ Item {
                     anchors.rightMargin: 12
 
                     Label {
-                        text: root.currentIndex === 0 ? "设置" : (root.currentIndex === 1 ? "学科管理" : (root.currentIndex === 2 ? "安全" : "关于"))
+                        text: root.currentIndex === 0
+                            ? "设置"
+                            : (root.currentIndex === 1
+                                ? "学科管理"
+                                : (root.currentIndex === 2
+                                    ? "安全"
+                                    : (root.currentIndex === 3
+                                        ? "个性化"
+                                        : (root.currentIndex === 4 ? "其他" : "关于"))))
                         font.pixelSize: 20
                         font.bold: true
                     }
@@ -159,6 +182,21 @@ Item {
                 }
 
                 SecurityView {
+                }
+
+                PersonalizationView {
+                    fontScale: root.fontScale
+                    timeScale: root.timeScale
+                    themePreset: root.themePreset
+                    appFontFamily: root.appFontFamily
+                    onFontScaleUpdated: root.fontScaleUpdated(value)
+                    onTimeScaleUpdated: root.timeScaleUpdated(value)
+                    onThemeSelected: root.themePresetUpdated(preset)
+                    onAppFontFamilySelected: root.appFontFamilyUpdated(family)
+                }
+
+                OtherView {
+                    onRerunOnboardingRequested: root.rerunOnboardingRequested()
                 }
 
                 AboutView {
