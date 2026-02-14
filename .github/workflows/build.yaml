@@ -1,185 +1,95 @@
-name: Windows PyInstaller Build
- 
+name: Windows Build
+
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (e.g. v1.0.0)"
+        description: "Release version tag (e.g. 1.2.0.2 or 1.2.0.2-beta1)"
         required: true
         type: string
- 
+
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
- 
+        uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
- 
+          python-version: "3.10"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller
+          pip install pyinstaller PyQt5
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
- 
-      - name: Create saves folder placeholder
+
+      - name: Prepare saves folder
         run: |
           if (!(Test-Path "saves")) {
-            New-Item -ItemType Directory -Path "saves" -Force
+            New-Item -ItemType Directory -Path "saves" -Force | Out-Null
           }
-          # 创建空的配置文件确保saves文件夹被包含
           if (!(Test-Path "saves\config.json")) {
             '{}' | Out-File -FilePath "saves\config.json" -Encoding UTF8
           }
- 
-      - name: Add saves folder auto-creation code
+
+      - name: Build with PyInstaller (onedir)
         run: |
-          # 在main.py开头添加saves文件夹自动创建代码
-          $savesCode = @'
-import os
-import sys
-import json
- 
-def ensure_saves_folder():
-    """确保saves文件夹存在，如果不存在则创建"""
-    if getattr(sys, 'frozen', False):
-        # 如果是打包后的可执行文件
-        base_path = os.path.dirname(sys.executable)
-    else:
-        # 如果是开发环境
-        base_path = os.path.dirname(os.path.abspath(__file__))
-    
-    saves_path = os.path.join(base_path, 'saves')
-    
-    if not os.path.exists(saves_path):
-        try:
-            os.makedirs(saves_path)
-            print(f"Created saves folder at: {saves_path}")
-            
-            # 创建默认配置文件
-            config_path = os.path.join(saves_path, 'config.json')
-            default_config = {
-                "passwordHash": "",
-                "passwordUpdatedAt": "",
-                "appFontFamily": "HarmonyOS Sans SC",
-                "fontUpdatedAt": "",
-                "onboardingDone": false,
-                "onboardingUpdatedAt": ""
-            }
-            
-            with open(config_path, 'w', encoding='utf-8') as f:
-                json.dump(default_config, f, indent=2, ensure_ascii=False)
-            
-            print(f"Created default config file at: {config_path}")
-            
-        except Exception as e:
-            print(f"Error creating saves folder: {e}")
- 
-# 程序启动时自动创建saves文件夹
-ensure_saves_folder()
- 
-'@
- 
-          # 读取现有的main.py内容
-          $originalContent = Get-Content "main.py" -Raw
-          
-          # 将新代码添加到文件开头
-          $newContent = $savesCode + $originalContent
-          
-          # 写回文件
-          $newContent | Set-Content "main.py" -Encoding UTF8
-          
-          Write-Host "Added saves folder auto-creation code to main.py"
- 
-      - name: Build with PyInstaller
-        run: |
-          pyinstaller --onefile `
-            --name=HomeworkIsland `
-            --add-data="saves;saves" `
-            --add-data=".;." `
-            --exclude-module=matplotlib `
-            --exclude-module=PIL `
-            --exclude-module=pygame `
-            --windowed `
-            --icon=icon.ico `
-            --clean `
+          pyinstaller `
             --noconfirm `
+            --clean `
+            --windowed `
+            --name "Homeworklsland" `
+            --icon "icon.ico" `
+            --add-data "qml;qml" `
+            --add-data "view;view" `
+            --add-data "about.html;." `
+            --add-data "icon.png;." `
+            --add-data "font.ttf;." `
+            --add-data "dev.txt;." `
             main.py
- 
-      - name: Create distribution package
+
+      - name: Create ZIP package (软件-版本-架构-系统)
         run: |
-          New-Item -ItemType Directory -Path "dist\release" -Force
-          Copy-Item "dist\HomeworkIsland.exe" "dist\release\"
-          Copy-Item "saves" "dist\release\" -Recurse -Force
-          Copy-Item "icon.ico" "dist\release\" -ErrorAction SilentlyContinue
-          
-          # 创建README文件
-          @"
-HomeworkIsland - Windows Executable
-===================================
- 
-首次运行程序时，会自动在程序所在目录创建saves文件夹和默认配置文件。
- 
-使用方法：
-1. 双击 HomeworkIsland.exe 运行程序
-2. 程序会自动创建saves文件夹
-3. 配置文件将保存在 saves\config.json
- 
-版本: ${{ github.event.inputs.version }}
-构建时间: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-"@ | Out-File -FilePath "dist\release\README.txt" -Encoding UTF8
- 
-      - name: Create ZIP package
-        run: |
-          Compress-Archive -Path "dist\release\*" -DestinationPath "HomeworkIsland-Windows-${{ github.event.inputs.version }}.zip" -Force
- 
+          $tag = "${{ inputs.version }}"
+          $arch = "${{ runner.arch }}".ToLower()
+          if ($arch -eq "x64") { $arch = "x64" }
+          elseif ($arch -eq "arm64") { $arch = "arm64" }
+          elseif ($arch -eq "x86") { $arch = "x86" }
+
+          $packageDirName = "Homeworklsland-$tag-$arch-windows"
+          $zipName = "$packageDirName.zip"
+
+          if (Test-Path "dist\$packageDirName") { Remove-Item "dist\$packageDirName" -Recurse -Force }
+
+          Move-Item "dist\Homeworklsland" "dist\$packageDirName"
+
+          if (!(Test-Path "dist\$packageDirName\saves")) {
+            New-Item -ItemType Directory -Path "dist\$packageDirName\saves" -Force | Out-Null
+          }
+          Copy-Item "saves\*" "dist\$packageDirName\saves\" -Recurse -Force
+
+          if (Test-Path $zipName) { Remove-Item $zipName -Force }
+          Compress-Archive -Path "dist\$packageDirName\*" -DestinationPath $zipName -Force
+
+          Write-Host "Created $zipName"
+
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: HomeworkIsland-Windows
-          path: HomeworkIsland-Windows-${{ github.event.inputs.version }}.zip
- 
-  create-release:
-    needs: build-windows
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: HomeworkIsland-Windows
-          path: release
- 
-      - name: Create Release
+          name: Homeworklsland-windows-zip
+          path: Homeworklsland-*-*-windows.zip
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.event.inputs.version }}
-          name: HomeworkIsland Windows ${{ github.event.inputs.version }}
-          body: |
-            ## HomeworkIsland Windows 版本
-            
-            此版本包含：
-            - 完整的Windows可执行文件
-            - 自动创建saves文件夹功能
-            - 默认配置文件
-            
-            ### 使用方法
-            1. 下载并解压ZIP文件
-            2. 双击 `HomeworkIsland.exe` 运行程序
-            3. 程序会自动创建saves文件夹和配置文件
-            
-            ### 版本信息
-            - 版本：${{ github.event.inputs.version }}
-            - 构建时间：${{ github.event.head_commit.timestamp }}
-            - 提交：${{ github.sha }}
-          files: |
-            release/HomeworkIsland-Windows-${{ github.event.inputs.version }}.zip
-          draft: false
-          prerelease: false
+          tag_name: ${{ inputs.version }}
+          name: Homeworklsland ${{ inputs.version }}
+          files: Homeworklsland-*-*-windows.zip
+          prerelease: ${{ contains(inputs.version, '-beta') }}
