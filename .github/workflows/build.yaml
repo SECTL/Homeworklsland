@@ -1,11 +1,11 @@
-name: Windows Build
+name: 多平台构建
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version tag (e.g. 1.2.0.2 or 1.2.0.2-beta1)"
-        required: true
+        description: "版本标签（可选，例如 1.2.0.2 或 1.2.0.2-beta1）。为空则不创建发布。"
+        required: false
         type: string
 
 permissions:
@@ -16,21 +16,21 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout code
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: 设置 Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
+      - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller PyQt5
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
 
-      - name: Prepare saves folder
+      - name: 准备 saves 文件夹
         run: |
           if (!(Test-Path "saves")) {
             New-Item -ItemType Directory -Path "saves" -Force | Out-Null
@@ -39,7 +39,7 @@ jobs:
             '{}' | Out-File -FilePath "saves\config.json" -Encoding UTF8
           }
 
-      - name: Build with PyInstaller (onedir)
+      - name: 使用 PyInstaller 构建（onedir）
         run: |
           pyinstaller `
             --noconfirm `
@@ -55,9 +55,10 @@ jobs:
             --add-data "dev.txt;." `
             main.py
 
-      - name: Create ZIP package (软件-版本-架构-系统)
+      - name: 创建 ZIP 包（软件-版本-架构-系统）
         run: |
           $tag = "${{ inputs.version }}"
+          if ([string]::IsNullOrEmpty($tag)) { $tag = "untagged" }
           $arch = "${{ runner.arch }}".ToLower()
           if ($arch -eq "x64") { $arch = "x64" }
           elseif ($arch -eq "arm64") { $arch = "arm64" }
@@ -80,16 +81,155 @@ jobs:
 
           Write-Host "Created $zipName"
 
-      - name: Upload artifact
+      - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: Homeworklsland-windows-zip
           path: Homeworklsland-*-*-windows.zip
+  build-macos:
+    runs-on: macos-latest
 
-      - name: Create GitHub Release
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller PyQt5
+
+      - name: 使用 PyInstaller 构建（App Bundle）
+        run: |
+          pyinstaller \
+            --noconfirm \
+            --clean \
+            --windowed \
+            --name "Homeworklsland" \
+            --add-data "qml:qml" \
+            --add-data "view:view" \
+            --add-data "about.html:." \
+            --add-data "icon.png:." \
+            --add-data "font.ttf:." \
+            --add-data "dev.txt:." \
+            main.py
+
+      - name: 创建 DMG（软件-版本-架构-系统）
+        run: |
+          tag="${{ inputs.version }}"
+          if [ -z "$tag" ]; then tag="untagged"; fi
+          arch="$(uname -m)"
+          case "$arch" in
+            x86_64) arch="x64" ;;
+            arm64) arch="arm64" ;;
+          esac
+          dmg="Homeworklsland-$tag-$arch-macos.dmg"
+          if [ -f "$dmg" ]; then rm -f "$dmg"; fi
+          hdiutil create -volname "Homeworklsland" -srcfolder "dist/Homeworklsland.app" -ov -format UDZO "$dmg"
+          echo "Created $dmg"
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: Homeworklsland-macos-dmg
+          path: Homeworklsland-*-*-macos.dmg
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller PyQt5
+
+      - name: 使用 PyInstaller 构建（onefile）
+        run: |
+          pyinstaller \
+            --noconfirm \
+            --clean \
+            --windowed \
+            --onefile \
+            --name "Homeworklsland" \
+            --add-data "qml:qml" \
+            --add-data "view:view" \
+            --add-data "about.html:." \
+            --add-data "icon.png:." \
+            --add-data "font.ttf:." \
+            --add-data "dev.txt:." \
+            main.py
+
+      - name: 创建 DEB 包（软件-版本-架构-系统）
+        run: |
+          set -e
+          tag="${{ inputs.version }}"
+          if [ -z "$tag" ]; then tag="untagged"; fi
+          arch="${{ runner.arch }}"
+          arch="$(echo "$arch" | tr '[:upper:]' '[:lower:]')"
+          if [ "$arch" = "x64" ]; then debArch="amd64"; elif [ "$arch" = "arm64" ]; then debArch="arm64"; else debArch="$arch"; fi
+          pkgRoot="pkg"
+          mkdir -p "$pkgRoot/DEBIAN" "$pkgRoot/usr/local/bin"
+          cp "dist/Homeworklsland" "$pkgRoot/usr/local/bin/Homeworklsland"
+          chmod 755 "$pkgRoot/usr/local/bin/Homeworklsland"
+          printf '%s\n' \
+            "Package: homeworklsland" \
+            "Version: $tag" \
+            "Section: utils" \
+            "Priority: optional" \
+            "Architecture: $debArch" \
+            "Maintainer: SECTL" \
+            "Description: Homeworklsland - PyQt5 桌面作业看板" \
+            > "$pkgRoot/DEBIAN/control"
+          deb="Homeworklsland-$tag-$arch-linux.deb"
+          dpkg-deb --build "$pkgRoot" "$deb"
+          echo "Created $deb"
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: Homeworklsland-linux-deb
+          path: Homeworklsland-*-*-linux.deb
+  release:
+    if: ${{ inputs.version != '' }}
+    runs-on: ubuntu-latest
+    needs:
+      - build-windows
+      - build-macos
+      - build-linux
+    steps:
+      - name: 下载 Windows 构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: Homeworklsland-windows-zip
+          path: release
+      - name: 下载 macOS 构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: Homeworklsland-macos-dmg
+          path: release
+      - name: 下载 Linux 构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: Homeworklsland-linux-deb
+          path: release
+      - name: 创建 GitHub 发布
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ inputs.version }}
           name: Homeworklsland ${{ inputs.version }}
-          files: Homeworklsland-*-*-windows.zip
+          files: |
+            release/Homeworklsland-*-*-windows.zip
+            release/Homeworklsland-*-*-macos.dmg
+            release/Homeworklsland-*-*-linux.deb
           prerelease: ${{ contains(inputs.version, '-beta') }}

@@ -42,8 +42,8 @@ Item {
             }
 
             Button {
-                text: "QQ群（1046723529）"
-                onClicked: Qt.openUrlExternally("https://qm.qq.com/q/lpxbJ6zRfy")
+                text: "QQ群（833875216）"
+                onClicked: Qt.openUrlExternally("https://qm.qq.com/q/56hpg2fz6U")
             }
 
         }
