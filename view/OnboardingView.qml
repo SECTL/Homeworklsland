@@ -26,7 +26,7 @@ Item {
         spacing: 16
 
         Label {
-            text: step === 0 ? "欢迎使用 HomeworkIsland" : (step === 1 ? "外观设置" : "设置完成")
+            text: step === 0 ? "欢迎使用 AssignSticker" : (step === 1 ? "外观设置" : "设置完成")
             font.pixelSize: 30
             font.bold: true
         }
@@ -40,7 +40,7 @@ Item {
                 spacing: 12
 
                 Label {
-                    text: "感谢您选择Homeworklsland!。"
+                    text: "感谢您选择AssignSticker!。"
                 }
 
                 Label {
@@ -121,7 +121,7 @@ Item {
 
                 Button {
                     text: "打开项目 GitHub 仓库"
-                    onClicked: Qt.openUrlExternally("https://github.com/chenghaolee-2012/Homeworklsland-project")
+                    onClicked: Qt.openUrlExternally("https://github.com/chenghaolee-2012/AssignSticker-project")
                 }
 
             }

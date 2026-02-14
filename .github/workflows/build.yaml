@@ -45,7 +45,7 @@ jobs:
             --noconfirm `
             --clean `
             --windowed `
-            --name "Homeworklsland" `
+            --name "AssignSticker" `
             --icon "icon.ico" `
             --add-data "qml;qml" `
             --add-data "view;view" `
@@ -64,12 +64,12 @@ jobs:
           elseif ($arch -eq "arm64") { $arch = "arm64" }
           elseif ($arch -eq "x86") { $arch = "x86" }
 
-          $packageDirName = "Homeworklsland-$tag-$arch-windows"
+          $packageDirName = "AssignSticker-$tag-$arch-windows"
           $zipName = "$packageDirName.zip"
 
           if (Test-Path "dist\$packageDirName") { Remove-Item "dist\$packageDirName" -Recurse -Force }
 
-          Move-Item "dist\Homeworklsland" "dist\$packageDirName"
+          Move-Item "dist\AssignSticker" "dist\$packageDirName"
 
           if (!(Test-Path "dist\$packageDirName\saves")) {
             New-Item -ItemType Directory -Path "dist\$packageDirName\saves" -Force | Out-Null
@@ -84,8 +84,8 @@ jobs:
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: Homeworklsland-windows-zip
-          path: Homeworklsland-*-*-windows.zip
+          name: AssignSticker-windows-zip
+          path: AssignSticker-*-*-windows.zip
   build-macos:
     runs-on: macos-latest
 
@@ -109,7 +109,7 @@ jobs:
             --noconfirm \
             --clean \
             --windowed \
-            --name "Homeworklsland" \
+            --name "AssignSticker" \
             --add-data "qml:qml" \
             --add-data "view:view" \
             --add-data "about.html:." \
@@ -127,16 +127,16 @@ jobs:
             x86_64) arch="x64" ;;
             arm64) arch="arm64" ;;
           esac
-          dmg="Homeworklsland-$tag-$arch-macos.dmg"
+          dmg="AssignSticker-$tag-$arch-macos.dmg"
           if [ -f "$dmg" ]; then rm -f "$dmg"; fi
-          hdiutil create -volname "Homeworklsland" -srcfolder "dist/Homeworklsland.app" -ov -format UDZO "$dmg"
+          hdiutil create -volname "AssignSticker" -srcfolder "dist/AssignSticker.app" -ov -format UDZO "$dmg"
           echo "Created $dmg"
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: Homeworklsland-macos-dmg
-          path: Homeworklsland-*-*-macos.dmg
+          name: AssignSticker-macos-dmg
+          path: AssignSticker-*-*-macos.dmg
   build-linux:
     runs-on: ubuntu-latest
 
@@ -161,7 +161,7 @@ jobs:
             --clean \
             --windowed \
             --onefile \
-            --name "Homeworklsland" \
+            --name "AssignSticker" \
             --add-data "qml:qml" \
             --add-data "view:view" \
             --add-data "about.html:." \
@@ -180,26 +180,26 @@ jobs:
           if [ "$arch" = "x64" ]; then debArch="amd64"; elif [ "$arch" = "arm64" ]; then debArch="arm64"; else debArch="$arch"; fi
           pkgRoot="pkg"
           mkdir -p "$pkgRoot/DEBIAN" "$pkgRoot/usr/local/bin"
-          cp "dist/Homeworklsland" "$pkgRoot/usr/local/bin/Homeworklsland"
-          chmod 755 "$pkgRoot/usr/local/bin/Homeworklsland"
+          cp "dist/AssignSticker" "$pkgRoot/usr/local/bin/AssignSticker"
+          chmod 755 "$pkgRoot/usr/local/bin/AssignSticker"
           printf '%s\n' \
-            "Package: homeworklsland" \
+            "Package: AssignSticker" \
             "Version: $tag" \
             "Section: utils" \
             "Priority: optional" \
             "Architecture: $debArch" \
             "Maintainer: SECTL" \
-            "Description: Homeworklsland - PyQt5 桌面作业看板" \
+            "Description: AssignSticker - PyQt5 桌面作业看板" \
             > "$pkgRoot/DEBIAN/control"
-          deb="Homeworklsland-$tag-$arch-linux.deb"
+          deb="AssignSticker-$tag-$arch-linux.deb"
           dpkg-deb --build "$pkgRoot" "$deb"
           echo "Created $deb"
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: Homeworklsland-linux-deb
-          path: Homeworklsland-*-*-linux.deb
+          name: AssignSticker-linux-deb
+          path: AssignSticker-*-*-linux.deb
   release:
     if: ${{ inputs.version != '' }}
     runs-on: ubuntu-latest
@@ -211,25 +211,25 @@ jobs:
       - name: 下载 Windows 构建产物
         uses: actions/download-artifact@v4
         with:
-          name: Homeworklsland-windows-zip
+          name: AssignSticker-windows-zip
           path: release
       - name: 下载 macOS 构建产物
         uses: actions/download-artifact@v4
         with:
-          name: Homeworklsland-macos-dmg
+          name: AssignSticker-macos-dmg
           path: release
       - name: 下载 Linux 构建产物
         uses: actions/download-artifact@v4
         with:
-          name: Homeworklsland-linux-deb
+          name: AssignSticker-linux-deb
           path: release
       - name: 创建 GitHub 发布
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ inputs.version }}
-          name: Homeworklsland ${{ inputs.version }}
+          name: AssignSticker ${{ inputs.version }}
           files: |
-            release/Homeworklsland-*-*-windows.zip
-            release/Homeworklsland-*-*-macos.dmg
-            release/Homeworklsland-*-*-linux.deb
+            release/AssignSticker-*-*-windows.zip
+            release/AssignSticker-*-*-macos.dmg
+            release/AssignSticker-*-*-linux.deb
           prerelease: ${{ contains(inputs.version, '-beta') }}

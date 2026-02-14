@@ -1,14 +1,14 @@
-# Homeworklsland
+# AssignSticker
 
 <div align="center">
 
 <image src="./icon.png"/>
 
-[![GitHub Issues](https://img.shields.io/github/issues-search/SECTL/Homeworklsland?query=is%3Aopen&style=for-the-badge&color=00b4ab&logo=github&label=问题)](https://github.com/SECTL/Homeworklsland/issues)
-[![最新版本](https://img.shields.io/github/v/release/SECTL/Homeworklsland?style=for-the-badge&color=00b4ab&label=最新正式版)](https://github.com/SECTL/Homeworklsland/releases/latest)
-[![最新Beta版本](https://img.shields.io/github/v/release/SECTL/Homeworklsland?include_prereleases&style=for-the-badge&label=测试版)](https://github.com/SECTL/Homeworklsland/releases/)
-[![上次更新](https://img.shields.io/github/last-commit/SECTL/Homeworklsland?style=for-the-badge&color=00b4ab&label=最后更新时间)](https://github.com/SECTL/Homeworklsland/commits/master)
-[![下载统计](https://img.shields.io/github/downloads/SECTL/Homeworklsland/total?style=for-the-badge&color=00b4ab&label=累计下载)](https://github.com/SECTL/Homeworklsland/releases)
+[![GitHub Issues](https://img.shields.io/github/issues-search/SECTL/AssignSticker?query=is%3Aopen&style=for-the-badge&color=00b4ab&logo=github&label=问题)](https://github.com/SECTL/AssignSticker/issues)
+[![最新版本](https://img.shields.io/github/v/release/SECTL/AssignSticker?style=for-the-badge&color=00b4ab&label=最新正式版)](https://github.com/SECTL/AssignSticker/releases/latest)
+[![最新Beta版本](https://img.shields.io/github/v/release/SECTL/AssignSticker?include_prereleases&style=for-the-badge&label=测试版)](https://github.com/SECTL/AssignSticker/releases/)
+[![上次更新](https://img.shields.io/github/last-commit/SECTL/AssignSticker?style=for-the-badge&color=00b4ab&label=最后更新时间)](https://github.com/SECTL/AssignSticker/commits/master)
+[![下载统计](https://img.shields.io/github/downloads/SECTL/AssignSticker/total?style=for-the-badge&color=00b4ab&label=累计下载)](https://github.com/SECTL/AssignSticker/releases)
 
 [![QQ群](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
 
@@ -35,11 +35,11 @@
 ## CI 构建与发布
 
 - 工作流文件：`.github/workflows/build.yaml`（仅 Windows 构建）  
-  链接：[build.yaml](file:///d:/GitHub/Homeworklsland/.github/workflows/build.yaml)
+  链接：[build.yaml](file:///d:/GitHub/AssignSticker/.github/workflows/build.yaml)
 - 手动触发：`workflow_dispatch`，需输入 `version`（版本 tag），支持区分 beta 与正式
 - 构建产物命名规则：`[软件]-[版本tag]-[架构]-[系统].zip`
-  - 示例（正式）：`Homeworklsland-1.2.0.2-x64-windows.zip`
-  - 示例（beta）：`Homeworklsland-1.2.0.2-beta1-x64-windows.zip`
+  - 示例（正式）：`AssignSticker-1.2.0.2-x64-windows.zip`
+  - 示例（beta）：`AssignSticker-1.2.0.2-beta1-x64-windows.zip`
 - 发布策略：当 `version` 包含 `-beta` 时，Release 自动标记为预发布（pre-release）
 
 ## 版权与说明

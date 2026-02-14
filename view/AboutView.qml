@@ -19,7 +19,7 @@ Item {
         }
 
         Label {
-            text: "Homeworklsland"
+            text: "AssignSticker"
             font.pixelSize: 30
             font.bold: true
             Layout.alignment: Qt.AlignHCenter
@@ -38,7 +38,7 @@ Item {
 
             Button {
                 text: "打开 GitHub 仓库"
-                onClicked: Qt.openUrlExternally("https://github.com/chenghaolee-2012/Homeworklsland-project")
+                onClicked: Qt.openUrlExternally("https://github.com/chenghaolee-2012/AssignSticker-project")
             }
 
             Button {

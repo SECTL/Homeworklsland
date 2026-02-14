@@ -242,8 +242,8 @@ def main() -> int:
     os.environ.setdefault("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense")
 
     app = QApplication(sys.argv)
-    app.setOrganizationName("HOMEWORKISLAND")
-    app.setApplicationName("SECTL-HOMEWORKISLAND")
+    app.setOrganizationName("AssignSticker")
+    app.setApplicationName("SECTL-AssignSticker")
     app.setQuitOnLastWindowClosed(False)
 
     project_dir = os.path.dirname(__file__)
