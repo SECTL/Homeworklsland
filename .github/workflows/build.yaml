@@ -1,4 +1,4 @@
-name: PyInstaller Build and Release
+name: Windows PyInstaller Build
 
 on:
   workflow_dispatch:
@@ -9,22 +9,21 @@ on:
         type: string
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-windows:
+    runs-on: windows-latest
     strategy:
       matrix:
         arch: [x64, x86_64, arm64]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+          architecture: ${{ matrix.arch }}
 
       - name: Install dependencies
         run: |
@@ -32,40 +31,53 @@ jobs:
           pip install pyinstaller
           pip install -r requirements.txt
 
-      - name: Add auto-create saves folder
+      - name: Inject saves folder creation
         run: |
-          # 在main.py中添加自动创建saves文件夹的代码
-          echo -e "\nimport os\nif not os.path.exists('saves'):\n    os.makedirs('saves')\n" >> main.py
+          # 在main.py中注入自动创建saves文件夹的代码
+          Add-Content -Path main.py -Value @"
+import os
+import sys
+
+def ensure_saves_folder():
+    saves_path = os.path.join(os.path.dirname(sys.executable), 'saves')
+    if not os.path.exists(saves_path):
+        os.makedirs(saves_path)
+        print(f"Created saves folder at: {saves_path}")
+
+if __name__ == '__main__':
+    ensure_saves_folder()
+"@
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller --onefile \
-            --add-data=".:." \
-            --exclude="*.pyc" \
-            --exclude=".gitignore" \
-            --exclude=".github" \
-            --exclude="__pycache__" \
-            --name=myapp_${{ matrix.arch }} \
+          pyinstaller --onefile `
+            --name=myapp_${{ matrix.arch }} `
+            --add-data=".;." `
+            --exclude="*.pyc" `
+            --exclude=".gitignore" `
+            --exclude=".github" `
+            --exclude="__pycache__" `
+            --windowed `
+            --icon=icon.ico `
             main.py
 
       - name: Package artifacts
         run: |
-          mkdir -p dist/${{ matrix.arch }}
-          cp dist/myapp_${{ matrix.arch }} dist/${{ matrix.arch }}/
-          cp -r saves/ dist/${{ matrix.arch }}/ || true
-          tar -czvf myapp_${{ matrix.arch }}.tar.gz -C dist/${{ matrix.arch }} .
+          mkdir release
+          cp dist/myapp_${{ matrix.arch }}.exe release/
+          7z a myapp_${{ matrix.arch }}.zip .\release\*
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: myapp_${{ matrix.arch }}
-          path: myapp_${{ matrix.arch }}.tar.gz
+          path: myapp_${{ matrix.arch }}.zip
 
   release:
-    needs: build
-    runs-on: ubuntu-latest
+    needs: build-windows
+    runs-on: windows-latest
     steps:
-      - name: Download all artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
           path: dist
@@ -74,6 +86,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.event.inputs.version }}
-          name: Release ${{ github.event.inputs.version }}
+          name: Windows Release ${{ github.event.inputs.version }}
           files: |
-            dist/*.tar.gz
+            dist/*.zip
