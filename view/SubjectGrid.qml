@@ -6,15 +6,16 @@ Flickable {
     id: root
     property var subjectEntries: []
     property real displayScale: 1.0
+    property real uiScale: 1.0
     clip: true
     contentWidth: width
-    contentHeight: flow.implicitHeight * displayScale + 24
+    contentHeight: flow.implicitHeight * displayScale + Math.round(24 * root.uiScale)
 
     Flow {
         id: flow
         width: root.width / displayScale
-        spacing: 12
-        anchors.margins: 16
+        spacing: Math.round(12 * root.uiScale)
+        anchors.margins: Math.round(16 * root.uiScale)
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
@@ -25,9 +26,10 @@ Flickable {
             model: root.subjectEntries
 
             delegate: SubjectCard {
-                width: (flow.width - 16 * 2 - 12) / 2
+                width: (flow.width - Math.round(16 * root.uiScale) * 2 - Math.round(12 * root.uiScale)) / 2
                 subjectName: modelData.name
                 modelRef: modelData.model
+                uiScale: root.uiScale
             }
         }
     }

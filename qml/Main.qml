@@ -10,6 +10,11 @@ Item {
     property bool boardVisible: true
     property bool fullScreen: false
     property real displayScale: 1.2
+    property real uiScale: {
+        var g = (boardWindow && boardWindow.avail) ? boardWindow.avail : Qt.rect(0, 0, 1920, 1080)
+        var s = Math.min(g.width / 1920.0, g.height / 1080.0)
+        return Math.max(0.75, Math.min(1.35, s))
+    }
     property var visibleSubjectEntries: []
     property int subjectsVersion: 0
     property string activeDay: ""
@@ -17,6 +22,26 @@ Item {
     signal hideBoard()
     signal showSettings()
     property string pendingProtectedAction: ""
+
+    function scaled(px) {
+        return Math.round(px * uiScale)
+    }
+
+    function boardDefaultWidth(g) {
+        return Math.round(Math.max(900, Math.min(2165, g.width * 0.96)))
+    }
+
+    function boardDefaultHeight(g) {
+        return Math.round(Math.max(640, Math.min(1233, g.height * 0.96)))
+    }
+
+    function settingsDefaultWidth(g) {
+        return Math.round(Math.max(860, Math.min(1265, g.width * 0.94)))
+    }
+
+    function settingsDefaultHeight(g) {
+        return Math.round(Math.max(620, Math.min(863, g.height * 0.92)))
+    }
 
     function addAssignment(subject, title, isExercise, startPage, endPage, note, tags) {
         if (!subject || subject.length === 0) {
@@ -290,8 +315,8 @@ Item {
         readonly property var avail: (screen && screen.availableGeometry) ? screen.availableGeometry : Qt.rect(0, 0, 1920, 1080)
         objectName: "boardWindow"
         property bool startupPositioned: false
-        width: 2165
-        height: 1233
+        width: appRoot.boardDefaultWidth(avail)
+        height: appRoot.boardDefaultHeight(avail)
         color: "#F8F6F2"
         flags: Qt.FramelessWindowHint | Qt.Window
         visible: true
@@ -321,7 +346,13 @@ Item {
 
         onWidthChanged: updatePosition()
         onHeightChanged: updatePosition()
-        onScreenChanged: updatePosition()
+        onScreenChanged: {
+            if (!appRoot.fullScreen) {
+                width = appRoot.boardDefaultWidth(avail)
+                height = appRoot.boardDefaultHeight(avail)
+            }
+            updatePosition()
+        }
 
         Behavior on y {
             enabled: startupPositioned
@@ -338,8 +369,8 @@ Item {
                 visibility = Window.FullScreen
             } else {
                 visibility = Window.Windowed
-                width = 2165
-                height = 1233
+                width = appRoot.boardDefaultWidth(avail)
+                height = appRoot.boardDefaultHeight(avail)
             }
         }
 
@@ -368,6 +399,7 @@ Item {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
+                uiScale: appRoot.uiScale
                 subjectEntries: appRoot.visibleSubjectEntries
             }
 
@@ -381,6 +413,7 @@ Item {
                 }
                 subjectEntries: appRoot.visibleSubjectEntries
                 displayScale: appRoot.displayScale
+                uiScale: appRoot.uiScale
             }
 
             Popup {
@@ -402,6 +435,7 @@ Item {
 
                 View.AssignView {
                     anchors.fill: parent
+                    uiScale: appRoot.uiScale
                     subjectNames: {
                         appRoot.subjectsVersion
                         return appRoot.getEnabledSubjectNames()
@@ -415,6 +449,7 @@ Item {
 
             View.BottomBar {
                 id: bottomBar
+                uiScale: appRoot.uiScale
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
@@ -436,7 +471,7 @@ Item {
                 closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
                 anchors.centerIn: parent
                 width: 360
-                height: 220
+                height: appRoot.scaled(220)
 
                 background: Rectangle {
                     radius: 14
@@ -447,12 +482,12 @@ Item {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 16
-                    spacing: 10
+                    anchors.margins: appRoot.scaled(16)
+                    spacing: appRoot.scaled(10)
 
                     Label {
                         text: "请输入密码"
-                        font.pixelSize: 18
+                        font.pixelSize: appRoot.scaled(18)
                         font.bold: true
                     }
 
@@ -504,8 +539,8 @@ Item {
         id: miniWindow
         objectName: "miniWindow"
         readonly property var avail: (screen && screen.availableGeometry) ? screen.availableGeometry : Qt.rect(0, 0, 1920, 1080)
-        width: 88
-        height: 88
+        width: appRoot.scaled(88)
+        height: appRoot.scaled(88)
         flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
         color: "transparent"
         visible: !appRoot.boardVisible
@@ -523,23 +558,25 @@ Item {
         id: settingsWindow
         objectName: "settingsWindow"
         readonly property var avail: (screen && screen.availableGeometry) ? screen.availableGeometry : Qt.rect(0, 0, 1920, 1080)
-        width: 1265
-        height: 863
-        minimumWidth: width
-        maximumWidth: width
-        minimumHeight: height
-        maximumHeight: height
+        width: appRoot.settingsDefaultWidth(avail)
+        height: appRoot.settingsDefaultHeight(avail)
+        minimumWidth: 760
+        minimumHeight: 520
+        maximumWidth: avail.width
+        maximumHeight: avail.height
         visible: false
         color: "#F8F6F2"
         flags: Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
         title: "设置"
 
-        x: avail.x + avail.width - width - 24
-        y: avail.y + 48
+        x: Math.max(avail.x, avail.x + avail.width - width - 24)
+        y: Math.max(avail.y, avail.y + 48)
 
         Connections {
             target: appRoot
             function onShowSettings() {
+                settingsWindow.width = appRoot.settingsDefaultWidth(settingsWindow.avail)
+                settingsWindow.height = appRoot.settingsDefaultHeight(settingsWindow.avail)
                 settingsWindow.visible = true
                 settingsWindow.raise()
                 settingsWindow.requestActivate()
@@ -563,8 +600,8 @@ Item {
         id: splashWindow
         objectName: "splashWindow"
         readonly property var avail: (screen && screen.availableGeometry) ? screen.availableGeometry : Qt.rect(0, 0, 1920, 1080)
-        width: 2165
-        height: 1233
+        width: appRoot.boardDefaultWidth(avail)
+        height: appRoot.boardDefaultHeight(avail)
         visible: true
         color: "#FFFFFF"
         flags: Qt.Window

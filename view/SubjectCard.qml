@@ -6,22 +6,23 @@ Rectangle {
     id: root
     property string subjectName: ""
     property var modelRef
+    property real uiScale: 1.0
 
-    radius: 12
+    radius: Math.round(12 * root.uiScale)
     color: "#FFFFFF"
     border.color: "#E1D6C8"
     border.width: 1
-    height: listColumn.implicitHeight + 20
+    height: listColumn.implicitHeight + Math.round(20 * root.uiScale)
 
     Column {
         id: listColumn
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 6
+        anchors.margins: Math.round(12 * root.uiScale)
+        spacing: Math.round(6 * root.uiScale)
 
         Text {
             text: subjectName
-            font.pixelSize: 16
+            font.pixelSize: Math.round(16 * root.uiScale)
             font.bold: true
             color: "#3B2E24"
         }
@@ -29,11 +30,11 @@ Rectangle {
         Repeater {
             model: modelRef
             delegate: Column {
-                spacing: 2
+                spacing: Math.round(2 * root.uiScale)
 
                 Text {
                     text: "• " + title
-                    font.pixelSize: 13
+                    font.pixelSize: Math.round(13 * root.uiScale)
                     color: "#3B2E24"
                     wrapMode: Text.Wrap
                 }
@@ -41,7 +42,7 @@ Rectangle {
                 Text {
                     visible: detail.length > 0
                     text: detail
-                    font.pixelSize: 11
+                    font.pixelSize: Math.round(11 * root.uiScale)
                     color: "#6C5B4C"
                     wrapMode: Text.Wrap
                 }
@@ -49,7 +50,7 @@ Rectangle {
                 Text {
                     visible: note.length > 0
                     text: "备注: " + note
-                    font.pixelSize: 11
+                    font.pixelSize: Math.round(11 * root.uiScale)
                     color: "#7A6757"
                     wrapMode: Text.Wrap
                 }
@@ -57,7 +58,7 @@ Rectangle {
                 Text {
                     visible: tags.length > 0
                     text: "标签: " + tags
-                    font.pixelSize: 11
+                    font.pixelSize: Math.round(11 * root.uiScale)
                     color: "#8A5B3B"
                     wrapMode: Text.Wrap
                 }
@@ -73,7 +74,7 @@ Rectangle {
         Text {
             visible: modelRef && modelRef.count === 0
             text: "暂无作业"
-            font.pixelSize: 12
+            font.pixelSize: Math.round(12 * root.uiScale)
             color: "#A08C7A"
         }
     }

@@ -11,6 +11,7 @@ Item {
 
         ColumnLayout {
             id: content
+
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
@@ -52,16 +53,20 @@ Item {
                     text: "QQ群（1046723529）"
                     onClicked: Qt.openUrlExternally("https://qm.qq.com/q/lpxbJ6zRfy")
                 }
+
             }
 
             Label {
-                text: "Copyright 2026 chenghao_lee © all right reserved"
+                text: "Copyright 2026 SECTL © all right reserved"
                 font.pixelSize: 15
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
             }
+
         }
+
     }
+
 }

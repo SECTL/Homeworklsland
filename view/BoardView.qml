@@ -6,6 +6,7 @@ import QtQuick.Window 2.12
 Item {
     id: root
     property var subjectEntries: []
+    property real uiScale: 1.0
 
     implicitHeight: header.height
 
@@ -24,7 +25,7 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 120
+        height: Math.round(120 * root.uiScale)
         color: "#EFE7DA"
 
         MouseArea {
@@ -39,17 +40,17 @@ Item {
 
         Column {
             anchors.fill: parent
-            anchors.margins: 16
-            spacing: 6
+            anchors.margins: Math.round(16 * root.uiScale)
+            spacing: Math.round(6 * root.uiScale)
 
             RowLayout {
-                spacing: 12
+                spacing: Math.round(12 * root.uiScale)
                 anchors.left: parent.left
                 anchors.right: parent.right
 
                 Text {
                     id: timeText
-                    font.pixelSize: 28
+                    font.pixelSize: Math.round(28 * root.uiScale)
                     font.bold: true
                     color: "#3B2E24"
                     text: ""
@@ -60,7 +61,7 @@ Item {
 
             Text {
                 id: dateText
-                font.pixelSize: 14
+                font.pixelSize: Math.round(14 * root.uiScale)
                 color: "#5B4A3C"
                 text: ""
             }

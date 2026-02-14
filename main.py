@@ -5,11 +5,13 @@ import hashlib
 import hmac
 from datetime import date, datetime
 
+
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtCore import QProcess, QObject, pyqtSlot
-from PyQt5.QtGui import QIcon, QPixmap, QPainter
+from PyQt5.QtCore import QProcess, QObject, pyqtSlot as Slot
+from PyQt5.QtGui import QIcon, QPixmap, QPainter, QFont, QFontDatabase
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QInputDialog, QLineEdit, QMessageBox
+
 
 
 class SaveService(QObject):
@@ -26,7 +28,7 @@ class SaveService(QObject):
     def _today_file(self) -> str:
         return os.path.join(self._saves_dir, f"{self._today_str()}.json")
 
-    @pyqtSlot(result=str)
+    @Slot(result=str)
     def currentDay(self) -> str:
         return self._today_str()
 
@@ -53,13 +55,13 @@ class SaveService(QObject):
     def _hash_password(self, pwd: str) -> str:
         return hashlib.sha256(pwd.encode("utf-8")).hexdigest()
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def hasPassword(self) -> bool:
         cfg = self._load_config()
         p = cfg.get("passwordHash", "")
         return isinstance(p, str) and len(p) > 0
 
-    @pyqtSlot(str, result=bool)
+    @Slot(str, result=bool)
     def setPassword(self, password: str) -> bool:
         clean = (password or "").strip()
         if len(clean) == 0:
@@ -69,7 +71,7 @@ class SaveService(QObject):
         cfg["passwordUpdatedAt"] = datetime.now().isoformat(timespec="seconds")
         return self._save_config(cfg)
 
-    @pyqtSlot(str, result=bool)
+    @Slot(str, result=bool)
     def verifyPassword(self, password: str) -> bool:
         cfg = self._load_config()
         expected = cfg.get("passwordHash", "")
@@ -78,7 +80,7 @@ class SaveService(QObject):
         actual = self._hash_password(password or "")
         return hmac.compare_digest(expected, actual)
 
-    @pyqtSlot(result=str)
+    @Slot(result=str)
     def loadAboutHtml(self) -> str:
         html_path = os.path.join(self._base_dir, "about.html")
         if not os.path.exists(html_path):
@@ -100,7 +102,7 @@ class SaveService(QObject):
             return html.replace("</head>", bg_style + "</head>", 1)
         return "<html><head>" + bg_style + "</head><body>" + html + "</body></html>"
 
-    @pyqtSlot(result=str)
+    @Slot(result=str)
     def loadToday(self) -> str:
         file_path = self._today_file()
         if not os.path.exists(file_path):
@@ -114,7 +116,7 @@ class SaveService(QObject):
         except (OSError, json.JSONDecodeError):
             return "{}"
 
-    @pyqtSlot(str, result=bool)
+    @Slot(str, result=bool)
     def saveToday(self, payload_json: str) -> bool:
         try:
             payload = json.loads(payload_json) if payload_json else {}
@@ -149,6 +151,14 @@ def main() -> int:
     app.setQuitOnLastWindowClosed(False)
 
     project_dir = os.path.dirname(__file__)
+    font_path = os.path.join(project_dir, "font.ttf")
+    if os.path.exists(font_path):
+        font_id = QFontDatabase.addApplicationFont(font_path)
+        if font_id != -1:
+            families = QFontDatabase.applicationFontFamilies(font_id)
+            if families:
+                app.setFont(QFont(families[0]))
+
     save_service = SaveService(project_dir)
 
     engine = QQmlApplicationEngine()
@@ -236,7 +246,10 @@ def main() -> int:
     tray.setContextMenu(menu)
     tray.show()
 
-    return app.exec_()
+    try:
+        return app.exec()
+    except AttributeError:
+        return app.exec_()
 
 
 if __name__ == "__main__":
