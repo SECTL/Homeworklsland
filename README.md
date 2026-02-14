@@ -4,11 +4,11 @@
 
 <image src="./icon.png"/>
 
-[![GitHub Issues](https://img.shields.io/github/issues-search/SECTL/SecRandom?query=is%3Aopen&style=for-the-badge&color=00b4ab&logo=github&label=问题)](https://github.com/SECTL/SecRandom/issues)
-[![最新版本](https://img.shields.io/github/v/release/SECTL/SecRandom?style=for-the-badge&color=00b4ab&label=最新正式版)](https://github.com/SECTL/SecRandom/releases/latest)
-[![最新Beta版本](https://img.shields.io/github/v/release/SECTL/SecRandom?include_prereleases&style=for-the-badge&label=测试版)](https://github.com/SECTL/SecRandom/releases/)
-[![上次更新](https://img.shields.io/github/last-commit/SECTL/SecRandom?style=for-the-badge&color=00b4ab&label=最后更新时间)](https://github.com/SECTL/SecRandom/commits/master)
-[![下载统计](https://img.shields.io/github/downloads/SECTL/SecRandom/total?style=for-the-badge&color=00b4ab&label=累计下载)](https://github.com/SECTL/SecRandom/releases)
+[![GitHub Issues](https://img.shields.io/github/issues-search/SECTL/Homeworklsland?query=is%3Aopen&style=for-the-badge&color=00b4ab&logo=github&label=问题)](https://github.com/SECTL/Homeworklsland/issues)
+[![最新版本](https://img.shields.io/github/v/release/SECTL/Homeworklsland?style=for-the-badge&color=00b4ab&label=最新正式版)](https://github.com/SECTL/Homeworklsland/releases/latest)
+[![最新Beta版本](https://img.shields.io/github/v/release/SECTL/Homeworklsland?include_prereleases&style=for-the-badge&label=测试版)](https://github.com/SECTL/Homeworklsland/releases/)
+[![上次更新](https://img.shields.io/github/last-commit/SECTL/Homeworklsland?style=for-the-badge&color=00b4ab&label=最后更新时间)](https://github.com/SECTL/Homeworklsland/commits/master)
+[![下载统计](https://img.shields.io/github/downloads/SECTL/Homeworklsland/total?style=for-the-badge&color=00b4ab&label=累计下载)](https://github.com/SECTL/Homeworklsland/releases)
 
 [![QQ群](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
 
