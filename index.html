@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AssignSticker For web</title>
+    <title>Wow 伙伴！</title>
     <style>
         @font-face {
             font-family: 'CustomFont';
@@ -266,6 +266,34 @@
             height: 18px;
             opacity: 0.7;
         }
+
+        /* 作业编辑弹窗 iframe */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-iframe {
+            width: 90%;
+            max-width: 500px;
+            height: 80vh;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+            background: transparent;
+        }
     </style>
 </head>
 <body>
@@ -286,10 +314,15 @@
         <div>AssignSticker 1.2.0.2-Arc_de_Triomphe (debug)</div>
     </div>
 
+    <!-- 作业编辑弹窗 -->
+    <div class="modal-overlay" id="homeworkModal">
+        <iframe class="modal-iframe" id="homeworkIframe" src="htmls/more/homework_modal.html"></iframe>
+    </div>
+
     <!-- 浮动工具栏 -->
     <div class="floating-toolbar">
         <!-- 新建作业 -->
-        <button class="toolbar-btn" data-tooltip="新建作业">
+        <button class="toolbar-btn" data-tooltip="新建作业" onclick="openHomeworkModal()">
             <img src="icons/icons/add.svg" alt="新建">
         </button>
 
@@ -449,6 +482,34 @@
                 document.querySelectorAll('.submenu').forEach(menu => {
                     menu.classList.remove('show');
                 });
+            }
+        });
+
+        // 作业编辑弹窗功能
+        function openHomeworkModal() {
+            document.getElementById('homeworkModal').classList.add('show');
+        }
+
+        function closeHomeworkModal() {
+            document.getElementById('homeworkModal').classList.remove('show');
+            // 重置 iframe 中的表单
+            const iframe = document.getElementById('homeworkIframe');
+            if (iframe.contentWindow && iframe.contentWindow.resetHomeworkForm) {
+                iframe.contentWindow.resetHomeworkForm();
+            }
+        }
+
+        // 供 iframe 调用的回调函数
+        function onHomeworkSaved(homeworkData) {
+            console.log('作业已保存:', homeworkData);
+            alert('作业已保存！\n' + JSON.stringify(homeworkData, null, 2));
+            closeHomeworkModal();
+        }
+
+        // 点击弹窗外部关闭
+        document.getElementById('homeworkModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeHomeworkModal();
             }
         });
     </script>

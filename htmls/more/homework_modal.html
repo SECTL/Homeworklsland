@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新建作业</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @font-face {
+            font-family: 'CustomFont';
+            src: url('../../font.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        * {
+            font-family: 'CustomFont', sans-serif !important;
+        }
+
+        body {
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: none;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(80vh - 140px);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group select,
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="datetime-local"],
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #subjectSelect,
+        #homeworkTypeSelect {
+            min-width: 150px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .tag-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #f5f5f5;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+
+        .tag-checkbox:hover {
+            background: #e8e8e8;
+        }
+
+        .tag-checkbox input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .custom-tag-input {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .custom-tag-input input {
+            flex: 1;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .custom-tag-input button {
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s ease;
+        }
+
+        .custom-tag-input button:hover {
+            background: #5568d3;
+        }
+
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .selected-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: #667eea;
+            color: white;
+            border-radius: 16px;
+            font-size: 12px;
+        }
+
+        .selected-tag .remove-tag {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #555;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .homework-type-section {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>新建作业</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>学科</label>
+                    <select id="subjectSelect">
+                        <option value="">请选择学科</option>
+                        <option value="语文">语文</option>
+                        <option value="数学">数学</option>
+                        <option value="英语">英语</option>
+                        <option value="地理">地理</option>
+                        <option value="科学">科学</option>
+                        <option value="生物">生物</option>
+                        <option value="历史">历史</option>
+                        <option value="政治">政治</option>
+                        <option value="体育">体育</option>
+                        <option value="音乐">音乐</option>
+                        <option value="美术">美术</option>
+                        <option value="语言">语言</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>作业类型</label>
+                    <select id="homeworkTypeSelect" onchange="toggleHomeworkType()">
+                        <option value="">请选择类型</option>
+                        <option value="练习册">练习册</option>
+                        <option value="预习">预习</option>
+                        <option value="作业">作业</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>结束时间</label>
+                <input type="datetime-local" id="endTimeInput">
+            </div>
+
+            <div class="homework-type-section" id="workbookSection" style="display: none;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>开始页</label>
+                        <input type="number" id="startPage" placeholder="页码">
+                    </div>
+                    <div class="form-group">
+                        <label>结束页</label>
+                        <input type="number" id="endPage" placeholder="页码">
+                    </div>
+                </div>
+            </div>
+
+            <div class="homework-type-section" id="previewSection" style="display: none;">
+                <div class="form-group">
+                    <label>预习内容</label>
+                    <input type="text" id="previewContent" placeholder="请输入要预习的内容">
+                </div>
+            </div>
+
+            <div class="homework-type-section" id="homeworkSection" style="display: none;">
+                <div class="form-group">
+                    <label>作业内容</label>
+                    <textarea id="homeworkContent" rows="4" placeholder="请输入作业内容"></textarea>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>标签</label>
+                <div class="tags-container">
+                    <label class="tag-checkbox">
+                        <input type="checkbox" value="放学前交">
+                        <span>放学前交</span>
+                    </label>
+                    <label class="tag-checkbox">
+                        <input type="checkbox" value="家长签字">
+                        <span>家长签字</span>
+                    </label>
+                    <div class="custom-tag-input">
+                        <input type="text" id="customTag" placeholder="自定义标签">
+                        <button type="button" onclick="addCustomTag()">添加</button>
+                    </div>
+                </div>
+                <div class="selected-tags" id="selectedTags"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveHomework()">完成编辑并保存</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
+            document.getElementById('endTimeInput').value = tomorrow.toISOString().slice(0, 16);
+        });
+
+        function closeModal() {
+            if (window.parent && window.parent.closeHomeworkModal) {
+                window.parent.closeHomeworkModal();
+            }
+        }
+
+        function toggleHomeworkType() {
+            const type = document.getElementById('homeworkTypeSelect').value;
+            document.getElementById('workbookSection').style.display = type === '练习册' ? 'block' : 'none';
+            document.getElementById('previewSection').style.display = type === '预习' ? 'block' : 'none';
+            document.getElementById('homeworkSection').style.display = type === '作业' ? 'block' : 'none';
+        }
+
+        function addCustomTag() {
+            const input = document.getElementById('customTag');
+            const tagName = input.value.trim();
+            if (tagName) {
+                const selectedTags = document.getElementById('selectedTags');
+                const tagElement = document.createElement('div');
+                tagElement.className = 'selected-tag';
+                tagElement.innerHTML = `${tagName} <span class="remove-tag" onclick="this.parentElement.remove()">&times;</span>`;
+                selectedTags.appendChild(tagElement);
+                input.value = '';
+            }
+        }
+
+        function saveHomework() {
+            const subject = document.getElementById('subjectSelect').value;
+            const type = document.getElementById('homeworkTypeSelect').value;
+            const endTime = document.getElementById('endTimeInput').value;
+
+            if (!subject || !type || !endTime) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            const homeworkData = {
+                subject: subject,
+                type: type,
+                endTime: endTime,
+                tags: []
+            };
+
+            document.querySelectorAll('.tag-checkbox input:checked').forEach(cb => {
+                homeworkData.tags.push(cb.value);
+            });
+            document.querySelectorAll('.selected-tag').forEach(tag => {
+                const tagName = tag.textContent.replace('×', '').trim();
+                if (!homeworkData.tags.includes(tagName)) {
+                    homeworkData.tags.push(tagName);
+                }
+            });
+
+            if (type === '练习册') {
+                homeworkData.startPage = document.getElementById('startPage').value;
+                homeworkData.endPage = document.getElementById('endPage').value;
+            } else if (type === '预习') {
+                homeworkData.previewContent = document.getElementById('previewContent').value;
+            } else if (type === '作业') {
+                homeworkData.homeworkContent = document.getElementById('homeworkContent').value;
+            }
+
+            console.log('保存作业:', homeworkData);
+
+            if (window.parent && window.parent.onHomeworkSaved) {
+                window.parent.onHomeworkSaved(homeworkData);
+            } else {
+                alert('作业已保存！\n' + JSON.stringify(homeworkData, null, 2));
+                closeModal();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('subjectSelect').value = '';
+            document.getElementById('homeworkTypeSelect').value = '';
+            document.getElementById('endTimeInput').value = '';
+            document.getElementById('startPage').value = '';
+            document.getElementById('endPage').value = '';
+            document.getElementById('previewContent').value = '';
+            document.getElementById('homeworkContent').value = '';
+            document.getElementById('customTag').value = '';
+            document.querySelectorAll('.tag-checkbox input').forEach(cb => cb.checked = false);
+            document.getElementById('selectedTags').innerHTML = '';
+            toggleHomeworkType();
+
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
+            document.getElementById('endTimeInput').value = tomorrow.toISOString().slice(0, 16);
+        }
+
+        window.resetHomeworkForm = resetForm;
+    </script>
+</body>
+</html>
