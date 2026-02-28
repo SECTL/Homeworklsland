@@ -1,0 +1,18 @@
+新建作业 图标：icons/icons/add.svg
+-------(分割功能栏)---------
+保存 图标: icons/icons/save.svg
+保存 下面的子菜单：
+    保存为 图片 图标：/icons/icons/image.svg
+    手动保存作业 图标：/icons/icons/save.svg
+
+全屏 图标：icons/icons/fullscreen.svg
+隐藏 图标：icons/icons/hide.svg
+-------(分割功能栏)---------
+缩小 图标：icons/icons/minimize.svg
+[显示当前显示比例]
+放大 图标：icons/icons/maximize.svg
+-------(分割功能栏)---------
+锁定 图标：icons/icons/lock.svg
+设置 图标：icons/icons/settings.svg
+退出 图标：icons/icons/exit.svg
+重启 图标：icons/icons/restart.svg

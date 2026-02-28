@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AssignSticker - 菜单</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: #f5f5f5;
+            padding: 10px;
+            user-select: none;
+        }
+        
+        .menu-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            min-width: 200px;
+        }
+        
+        .menu-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        
+        .menu-header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .menu-header p {
+            font-size: 12px;
+            opacity: 0.9;
+            margin: 5px 0 0 0;
+        }
+        
+        .menu-section {
+            padding: 8px 0;
+        }
+        
+        .menu-section-title {
+            font-size: 11px;
+            color: #999;
+            padding: 8px 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .menu-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .menu-item:active {
+            background: #e0e0e0;
+        }
+        
+        .menu-item.danger:hover {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .menu-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .menu-divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 8px 16px;
+        }
+        
+        .toggle-switch {
+            margin-left: auto;
+            width: 40px;
+            height: 22px;
+            background: #ccc;
+            border-radius: 11px;
+            position: relative;
+            transition: background 0.3s;
+        }
+        
+        .toggle-switch.active {
+            background: #667eea;
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-switch.active::after {
+            transform: translateX(18px);
+        }
+        
+        .shortcut {
+            margin-left: auto;
+            font-size: 12px;
+            color: #999;
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-container">
+        <div class="menu-header">
+            <h1>AssignSticker</h1>
+            <p>版本 1.2.0.2</p>
+        </div>
+        
+        <div class="menu-section">
+            <div class="menu-section-title">窗口</div>
+            <button class="menu-item" onclick="showMainWindow()">
+                <span class="menu-icon">🪟</span>
+                <span>显示主窗口</span>
+            </button>
+            <button class="menu-item" onclick="toggleAlwaysOnTop()">
+                <span class="menu-icon">📌</span>
+                <span>置顶显示</span>
+                <div class="toggle-switch" id="alwaysOnTopToggle"></div>
+            </button>
+        </div>
+        
+        <div class="menu-divider"></div>
+        
+        <div class="menu-section">
+            <div class="menu-section-title">调试</div>
+            <button class="menu-item" onclick="toggleDevTools()">
+                <span class="menu-icon">🐛</span>
+                <span>开发人员工具</span>
+                <div class="toggle-switch" id="devToolsToggle"></div>
+            </button>
+            <button class="menu-item" onclick="triggerCrash()">
+                <span class="menu-icon">💥</span>
+                <span>触发异常（测试）</span>
+            </button>
+            <button class="menu-item" onclick="openLogs()">
+                <span class="menu-icon">📄</span>
+                <span>查看日志</span>
+            </button>
+        </div>
+        
+        <div class="menu-divider"></div>
+        
+        <div class="menu-section">
+            <div class="menu-section-title">关于</div>
+            <button class="menu-item" onclick="openFeedback()">
+                <span class="menu-icon">💬</span>
+                <span>反馈问题</span>
+            </button>
+            <button class="menu-item" onclick="openAbout()">
+                <span class="menu-icon">ℹ️</span>
+                <span>关于 AssignSticker</span>
+            </button>
+        </div>
+        
+        <div class="menu-divider"></div>
+        
+        <div class="menu-section">
+            <button class="menu-item danger" onclick="exitApp()">
+                <span class="menu-icon">🚪</span>
+                <span>退出程序</span>
+                <span class="shortcut">⌘Q</span>
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        let devToolsOpen = false;
+        let alwaysOnTop = false;
+        
+        // 显示主窗口
+        function showMainWindow() {
+            logAction('显示主窗口');
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.show_main_window();
+            }
+        }
+        
+        // 切换置顶显示
+        function toggleAlwaysOnTop() {
+            alwaysOnTop = !alwaysOnTop;
+            document.getElementById('alwaysOnTopToggle').classList.toggle('active', alwaysOnTop);
+            logAction('置顶显示: ' + (alwaysOnTop ? '开启' : '关闭'));
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.set_always_on_top(alwaysOnTop);
+            }
+        }
+        
+        // 切换开发人员工具
+        function toggleDevTools() {
+            devToolsOpen = !devToolsOpen;
+            document.getElementById('devToolsToggle').classList.toggle('active', devToolsOpen);
+            logAction('开发人员工具: ' + (devToolsOpen ? '开启' : '关闭'));
+            if (window.pywebview && window.pywebview.api) {
+                if (devToolsOpen) {
+                    window.pywebview.api.open_devtools();
+                } else {
+                    window.pywebview.api.close_devtools();
+                }
+            }
+        }
+        
+        // 触发异常（测试崩溃窗口）
+        function triggerCrash() {
+            logAction('手动触发异常测试');
+            if (confirm('确定要触发异常来测试崩溃窗口吗？')) {
+                if (window.pywebview && window.pywebview.api) {
+                    window.pywebview.api.trigger_crash();
+                }
+            }
+        }
+        
+        // 打开日志文件夹
+        function openLogs() {
+            logAction('打开日志文件夹');
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.open_logs_folder();
+            }
+        }
+        
+        // 打开反馈页面
+        function openFeedback() {
+            logAction('打开反馈');
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.open_feedback();
+            }
+        }
+        
+        // 打开关于页面
+        function openAbout() {
+            logAction('打开关于页面');
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.open_about();
+            }
+        }
+        
+        // 退出程序
+        function exitApp() {
+            logAction('退出程序');
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.exit_application();
+            }
+        }
+        
+        // 记录操作日志
+        function logAction(action) {
+            console.log('[托盘菜单] ' + action);
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.log_message(action);
+            }
+        }
+        
+        // 点击菜单外部关闭菜单
+        document.addEventListener('click', function(e) {
+            if (e.target === document.body) {
+                if (window.pywebview && window.pywebview.api) {
+                    window.pywebview.api.close_tray_menu();
+                }
+            }
+        });
+        
+        // 键盘快捷键
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (window.pywebview && window.pywebview.api) {
+                    window.pywebview.api.close_tray_menu();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

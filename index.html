@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AssignSticker For web</title>
+    <style>
+        @font-face {
+            font-family: 'CustomFont';
+            src: url('font.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        * {
+            font-family: 'CustomFont', sans-serif !important;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .header-container {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 0;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .saying-container {
+                width: 100%;
+                margin-top: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            #dateDisplay {
+                font-size: 12px;
+            }
+
+            .saying-text {
+                font-size: 14px;
+            }
+        }
+
+        .saying-container {
+            width: 400px;
+            text-align: right;
+            padding: 20px;
+        }
+
+        .footer-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            font-size: 12px;
+            color: #666;
+            text-align: left;
+        }
+
+        .saying-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.6;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+
+        .saying-text.fade-out {
+            opacity: 0;
+        }
+
+        .saying-from {
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
+            white-space: nowrap;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+
+        .saying-from.fade-out {
+            opacity: 0;
+        }
+
+        .time-date-container {
+            margin-left: 20px;
+            padding-top: 15px;
+        }
+
+        h1 {
+            color: rgb(6, 6, 6);
+            margin: 0;
+            font-size: 37px;
+        }
+
+        #dateDisplay {
+            color: rgb(6, 6, 6);
+            margin: 2px 0 0 0;
+            font-size: 15px;
+            text-align: left;
+        }
+
+        /* 浮动工具栏 */
+        .floating-toolbar {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .toolbar-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: transparent;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 6px;
+            position: relative;
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+            transform: scale(1.1);
+        }
+
+        .toolbar-btn img {
+            width: 22px;
+            height: 22px;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .toolbar-btn:hover img {
+            opacity: 1;
+        }
+
+        /* 工具提示 */
+        .toolbar-btn::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            z-index: 1001;
+        }
+
+        .toolbar-btn:hover::before {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.1);
+            margin: 0 4px;
+        }
+
+        .zoom-display {
+            font-size: 14px;
+            color: #666;
+            min-width: 50px;
+            text-align: center;
+            user-select: none;
+        }
+
+        /* 子菜单 */
+        .submenu-container {
+            position: relative;
+        }
+
+        .submenu {
+            position: absolute;
+            bottom: 55px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.9);
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 160px;
+            opacity: 0;
+            transition: all 0.2s ease;
+        }
+
+        .submenu.show {
+            display: flex;
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+
+        .submenu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+            text-align: left;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .submenu-item:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .submenu-item img {
+            width: 18px;
+            height: 18px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container">
+        <div class="time-date-container">
+            <h1 id="timeDisplay">Wow 伙伴！</h1>
+            <div id="dateDisplay"></div>
+        </div>
+
+        <div class="saying-container">
+            <div class="saying-text" id="sayingText"></div>
+            <div class="saying-from" id="sayingFrom"></div>
+        </div>
+    </div>
+
+    <div class="footer-info">
+        <div>开发中画面，不代表最终效果</div>
+        <div>AssignSticker 1.2.0.2-Arc_de_Triomphe (debug)</div>
+    </div>
+
+    <!-- 浮动工具栏 -->
+    <div class="floating-toolbar">
+        <!-- 新建作业 -->
+        <button class="toolbar-btn" data-tooltip="新建作业">
+            <img src="icons/icons/add.svg" alt="新建">
+        </button>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- 保存 -->
+        <div class="submenu-container">
+            <button class="toolbar-btn" data-tooltip="保存" onclick="toggleSubmenu('save-submenu')">
+                <img src="icons/icons/save.svg" alt="保存">
+            </button>
+            <div class="submenu" id="save-submenu">
+                <button class="submenu-item">
+                    <img src="icons/icons/image.svg" alt="图片">
+                    <span>保存为图片</span>
+                </button>
+                <button class="submenu-item">
+                    <img src="icons/icons/save.svg" alt="保存">
+                    <span>手动保存作业</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 全屏 -->
+        <button class="toolbar-btn" data-tooltip="全屏">
+            <img src="icons/icons/fullscreen.svg" alt="全屏">
+        </button>
+
+        <!-- 隐藏 -->
+        <button class="toolbar-btn" data-tooltip="隐藏">
+            <img src="icons/icons/hide.svg" alt="隐藏">
+        </button>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- 缩小 -->
+        <button class="toolbar-btn" data-tooltip="缩小">
+            <img src="icons/icons/minimize.svg" alt="缩小">
+        </button>
+
+        <!-- 显示比例 -->
+        <span class="zoom-display">100%</span>
+
+        <!-- 放大 -->
+        <button class="toolbar-btn" data-tooltip="放大">
+            <img src="icons/icons/maximize.svg" alt="放大">
+        </button>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- 锁定 -->
+        <button class="toolbar-btn" data-tooltip="锁定">
+            <img src="icons/icons/lock.svg" alt="锁定">
+        </button>
+
+        <!-- 设置 -->
+        <button class="toolbar-btn" data-tooltip="设置">
+            <img src="icons/icons/settings.svg" alt="设置">
+        </button>
+
+        <!-- 退出 -->
+        <button class="toolbar-btn" data-tooltip="退出">
+            <img src="icons/icons/exit.svg" alt="退出">
+        </button>
+
+        <!-- 重启 -->
+        <button class="toolbar-btn" data-tooltip="重启">
+            <img src="icons/icons/restart.svg" alt="重启">
+        </button>
+    </div>
+
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeString = `${hours}:${minutes}:${seconds}`;
+            document.getElementById('timeDisplay').textContent = timeString;
+        }
+
+        function updateDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            const weekDay = weekDays[now.getDay()];
+            const dateString = `${year}年${month}月${day}日 ${weekDay}`;
+            document.getElementById('dateDisplay').textContent = dateString;
+        }
+
+        // 初始化显示时间和日期
+        updateTime();
+        updateDate();
+
+        // 加载一言（带淡入淡出效果）
+        function loadSaying() {
+            const sayingText = document.getElementById('sayingText');
+            const sayingFrom = document.getElementById('sayingFrom');
+
+            // 淡出
+            sayingText.classList.add('fade-out');
+            sayingFrom.classList.add('fade-out');
+
+            // 等待淡出完成后加载新内容
+            setTimeout(() => {
+                fetch('saying/saying_sc.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        const sayings = data.sayings;
+                        const randomIndex = Math.floor(Math.random() * sayings.length);
+                        const randomSaying = sayings[randomIndex];
+                        sayingText.textContent = randomSaying.text;
+                        sayingFrom.textContent = randomSaying.from;
+
+                        // 淡入
+                        sayingText.classList.remove('fade-out');
+                        sayingFrom.classList.remove('fade-out');
+                    })
+                    .catch(error => {
+                        console.error('加载一言失败:', error);
+                        // 出错时也恢复显示
+                        sayingText.classList.remove('fade-out');
+                        sayingFrom.classList.remove('fade-out');
+                    });
+            }, 500); // 等待500ms淡出动画完成
+        }
+
+        // 初始化加载一言
+        loadSaying();
+
+        // 每秒更新一次时间
+        setInterval(updateTime, 1000);
+
+        // 每30秒切换一次一言
+        setInterval(loadSaying, 30000);
+
+        // 子菜单切换功能
+        function toggleSubmenu(submenuId) {
+            const submenu = document.getElementById(submenuId);
+            const isShowing = submenu.classList.contains('show');
+
+            // 关闭所有子菜单
+            document.querySelectorAll('.submenu').forEach(menu => {
+                menu.classList.remove('show');
+            });
+
+            // 如果当前菜单未显示，则显示它
+            if (!isShowing) {
+                submenu.classList.add('show');
+            }
+        }
+
+        // 点击其他地方关闭子菜单
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.submenu-container')) {
+                document.querySelectorAll('.submenu').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

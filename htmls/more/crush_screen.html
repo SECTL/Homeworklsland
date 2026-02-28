@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AssignSticker - 程序崩溃</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: white;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            text-align: center;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        h1 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 15px 0;
+        }
+        
+        .error-section {
+            text-align: left;
+            margin: 10px 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        
+        .error-section h2 {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .error-log {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            color: #333;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid #e0e0e0;
+            flex: 1;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .btn-left-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-restart {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-restart:hover {
+            background: #5568d3;
+        }
+
+        .btn-feedback {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-feedback:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-close {
+            background: transparent;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+
+        .btn-close:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-copy {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">⚠️</div>
+        <h1>AssignSticker因遇到错误意外退出</h1>
+        <div class="subtitle">请拿着崩溃日志点击反馈按钮前往GitHub的issue页面进行反馈</div>
+
+        <div class="divider"></div>
+        
+        <div class="error-section">
+            <h2>【错误日志】</h2>
+            <div class="error-log" id="errorLog">正在加载错误信息...</div>
+            <div id="manualWarning" style="display: none; color: #e74c3c; font-size: 11px; margin-top: 8px; text-align: center;">⚠️ 请勿用此窗口提交反馈</div>
+        </div>
+        
+        <div class="button-group">
+            <div class="btn-left-group">
+                <button class="btn btn-restart" onclick="restartApp()">重启</button>
+                <button class="btn btn-feedback" onclick="openFeedback()">反馈</button>
+                <button class="btn btn-close" onclick="closeWindow()">关闭</button>
+            </div>
+            <button class="btn btn-copy" onclick="copyError()">复制错误信息</button>
+        </div>
+    </div>
+    
+    <script>
+        // 从本地存储或URL参数获取错误信息
+        function loadErrorLog() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const errorInfo = urlParams.get('error') || localStorage.getItem('crash_error') || '未获取到详细错误信息';
+            const decodedError = decodeURIComponent(errorInfo);
+            document.getElementById('errorLog').textContent = decodedError;
+
+            // 检测是否为手动触发的测试异常
+            if (decodedError.includes('从托盘菜单手动触发的测试异常')) {
+                document.getElementById('manualWarning').style.display = 'block';
+            }
+        }
+
+        // 重启程序
+        function restartApp() {
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.restart_app();
+            } else {
+                // 如果没有API，尝试直接调用Python
+                alert('正在重启程序...');
+            }
+        }
+
+        // 打开反馈页面
+        function openFeedback() {
+            const feedbackUrl = 'https://github.com/SECTL/AssignSticker/issues';
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.open_url(feedbackUrl);
+            } else {
+                // 备用方案：尝试用window.open打开
+                window.open(feedbackUrl, '_blank');
+            }
+        }
+
+        // 关闭窗口
+        function closeWindow() {
+            if (window.pywebview && window.pywebview.api) {
+                window.pywebview.api.close_window();
+            } else {
+                window.close();
+            }
+        }
+
+        // 复制错误信息到剪贴板
+        function copyError() {
+            const errorLog = document.getElementById('errorLog').textContent;
+            navigator.clipboard.writeText(errorLog).then(() => {
+                alert('错误信息已复制到剪贴板');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动复制');
+            });
+        }
+
+        // 页面加载时获取错误信息
+        window.onload = loadErrorLog;
+    </script>
+</body>
+</html>
